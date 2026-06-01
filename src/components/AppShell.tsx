@@ -18,6 +18,7 @@ export function AppShell({ children, onOpenAI }: { children: ReactNode; onOpenAI
     { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
     { to: "/transacciones", label: "Transacciones", icon: ListOrdered },
     { to: "/settings/fixed-costs", label: "Costos fijos", icon: Settings },
+    { to: "/settings/import", label: "Importar", icon: Settings },
     { to: "/settings/team", label: "Equipo", icon: Settings },
     { to: "/settings/general", label: "General", icon: Settings },
   ];
