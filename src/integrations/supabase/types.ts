@@ -59,6 +59,7 @@ export type Database = {
           id: string
           name: string
           notes: string | null
+          stripe_customer_id: string | null
           workspace_id: string
         }
         Insert: {
@@ -67,6 +68,7 @@ export type Database = {
           id?: string
           name: string
           notes?: string | null
+          stripe_customer_id?: string | null
           workspace_id: string
         }
         Update: {
@@ -75,6 +77,7 @@ export type Database = {
           id?: string
           name?: string
           notes?: string | null
+          stripe_customer_id?: string | null
           workspace_id?: string
         }
         Relationships: [
@@ -158,6 +161,30 @@ export type Database = {
         }
         Relationships: []
       }
+      stripe_events: {
+        Row: {
+          id: string
+          payload: Json
+          processed_at: string
+          type: string
+          workspace_id: string | null
+        }
+        Insert: {
+          id: string
+          payload: Json
+          processed_at?: string
+          type: string
+          workspace_id?: string | null
+        }
+        Update: {
+          id?: string
+          payload?: Json
+          processed_at?: string
+          type?: string
+          workspace_id?: string | null
+        }
+        Relationships: []
+      }
       transactions: {
         Row: {
           account: Database["public"]["Enums"]["txn_account"]
@@ -171,6 +198,7 @@ export type Database = {
           currency: Database["public"]["Enums"]["txn_currency"]
           date: string
           id: string
+          import_batch_id: string | null
           is_pending: boolean
           notes: string | null
           paired_transaction_id: string | null
@@ -192,6 +220,7 @@ export type Database = {
           currency?: Database["public"]["Enums"]["txn_currency"]
           date?: string
           id?: string
+          import_batch_id?: string | null
           is_pending?: boolean
           notes?: string | null
           paired_transaction_id?: string | null
@@ -213,6 +242,7 @@ export type Database = {
           currency?: Database["public"]["Enums"]["txn_currency"]
           date?: string
           id?: string
+          import_batch_id?: string | null
           is_pending?: boolean
           notes?: string | null
           paired_transaction_id?: string | null
@@ -374,7 +404,7 @@ export type Database = {
       fixed_cost_category: "payroll" | "platform" | "other"
       txn_account: "bancolombia" | "stripe" | "chase" | "efectivo" | "otra"
       txn_currency: "COP" | "USD"
-      txn_source: "manual" | "telegram" | "stripe" | "ai_chat"
+      txn_source: "manual" | "telegram" | "stripe" | "ai_chat" | "import"
       txn_type: "ingreso" | "egreso"
       workspace_role: "owner" | "admin" | "member"
     }
@@ -507,7 +537,7 @@ export const Constants = {
       fixed_cost_category: ["payroll", "platform", "other"],
       txn_account: ["bancolombia", "stripe", "chase", "efectivo", "otra"],
       txn_currency: ["COP", "USD"],
-      txn_source: ["manual", "telegram", "stripe", "ai_chat"],
+      txn_source: ["manual", "telegram", "stripe", "ai_chat", "import"],
       txn_type: ["ingreso", "egreso"],
       workspace_role: ["owner", "admin", "member"],
     },
