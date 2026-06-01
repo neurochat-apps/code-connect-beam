@@ -188,7 +188,8 @@ function ImportPage() {
                   ))}
                 </ul>
               </div>
-            )}
+          </CardContent>
+        </Card>
 
         <Card>
           <CardHeader><CardTitle>Google Sheets — 1. Hoja de cálculo</CardTitle></CardHeader>
