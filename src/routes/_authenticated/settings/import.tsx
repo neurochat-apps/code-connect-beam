@@ -161,6 +161,36 @@ function ImportPage() {
         </Card>
 
         <Card>
+          <CardHeader><CardTitle>Importar flujo de caja Cóndor (Google Sheet)</CardTitle></CardHeader>
+          <CardContent className="space-y-3">
+            <p className="text-xs text-muted-foreground">
+              Lee cada hoja mensual (pesos + dólares) del sheet "Cóndor FLUJO DE CAJA" y crea ingresos/egresos por cada fila con ENTRADAS o SALIDAS.
+            </p>
+            <div className="space-y-2">
+              <Label className="text-xs">URL del sheet</Label>
+              <Input value={condorUrl} onChange={(e) => setCondorUrl(e.target.value)} />
+            </div>
+            <div className="flex gap-2 items-end">
+              <div className="space-y-1">
+                <Label className="text-xs">Desde (YYYY-MM)</Label>
+                <Input value={condorSince} onChange={(e) => setCondorSince(e.target.value)} className="w-44" placeholder="2026-06" />
+              </div>
+              <Button onClick={doCondor} disabled={condorLoading || !wsId || !condorUrl}>
+                {condorLoading ? "Importando..." : "Importar todos los meses"}
+              </Button>
+            </div>
+            {condorResult && (
+              <div className="text-sm space-y-1">
+                <p><b>{condorResult.inserted}</b> transacciones importadas en total.</p>
+                <ul className="text-xs text-muted-foreground space-y-0.5">
+                  {condorResult.perSheet.map((s) => (
+                    <li key={s.sheet}>· {s.sheet}: {s.rows} insertadas, {s.skipped} omitidas</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+        <Card>
           <CardHeader><CardTitle>Google Sheets — 1. Hoja de cálculo</CardTitle></CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
