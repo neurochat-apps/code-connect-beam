@@ -5,11 +5,11 @@ import { useServerFn } from "@tanstack/react-start";
 import { Plus, ArrowUpRight, ArrowDownRight, Wallet, TrendingUp } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { TransactionDialog } from "@/components/TransactionDialog";
+import { AIChatDialog } from "@/components/AIChatDialog";
 import { Button } from "@/components/ui/button";
 import { getMyWorkspaces, getDashboard } from "@/lib/finanzas.functions";
 import { fmtCOP, fmtUSD, fmtShortDate, periodRange, type Period } from "@/lib/format";
 import { cn } from "@/lib/utils";
-import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
   component: DashboardPage,
@@ -20,6 +20,7 @@ function DashboardPage() {
   const dashFn = useServerFn(getDashboard);
   const [period, setPeriod] = useState<Period>("month");
   const [open, setOpen] = useState(false);
+  const [aiOpen, setAiOpen] = useState(false);
 
   const { data: workspaces = [] } = useQuery({
     queryKey: ["workspaces"],
@@ -35,7 +36,7 @@ function DashboardPage() {
   });
 
   return (
-    <AppShell onOpenAI={() => toast.info("Chat IA — próximamente con Gemini")}>
+    <AppShell onOpenAI={() => setAiOpen(true)}>
       <div className="space-y-6">
         <div className="flex items-end justify-between gap-4 flex-wrap">
           <div>
@@ -131,6 +132,8 @@ function DashboardPage() {
       </div>
 
       {ws && <TransactionDialog open={open} onOpenChange={setOpen} workspaceId={ws.id} />}
+      <AIChatDialog open={aiOpen} onOpenChange={setAiOpen} workspaceId={ws?.id} />
+
     </AppShell>
   );
 }

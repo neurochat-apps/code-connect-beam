@@ -15,9 +15,13 @@ import { Route as LoginRouteImport } from './routes/login'
 import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
 import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AcceptInviteTokenRouteImport } from './routes/accept-invite.$token'
 import { Route as AuthenticatedTransaccionesRouteImport } from './routes/_authenticated/transacciones'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
+import { Route as AuthenticatedSettingsTeamRouteImport } from './routes/_authenticated/settings/team'
+import { Route as AuthenticatedSettingsGeneralRouteImport } from './routes/_authenticated/settings/general'
 import { Route as AuthenticatedSettingsFixedCostsRouteImport } from './routes/_authenticated/settings/fixed-costs'
+import { Route as ApiPublicTelegramWebhookRouteImport } from './routes/api/public/telegram/webhook'
 
 const SignupRoute = SignupRouteImport.update({
   id: '/signup',
@@ -48,6 +52,11 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AcceptInviteTokenRoute = AcceptInviteTokenRouteImport.update({
+  id: '/accept-invite/$token',
+  path: '/accept-invite/$token',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthenticatedTransaccionesRoute =
   AuthenticatedTransaccionesRouteImport.update({
     id: '/transacciones',
@@ -59,11 +68,29 @@ const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
   path: '/dashboard',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
+const AuthenticatedSettingsTeamRoute =
+  AuthenticatedSettingsTeamRouteImport.update({
+    id: '/settings/team',
+    path: '/settings/team',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
+const AuthenticatedSettingsGeneralRoute =
+  AuthenticatedSettingsGeneralRouteImport.update({
+    id: '/settings/general',
+    path: '/settings/general',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
 const AuthenticatedSettingsFixedCostsRoute =
   AuthenticatedSettingsFixedCostsRouteImport.update({
     id: '/settings/fixed-costs',
     path: '/settings/fixed-costs',
     getParentRoute: () => AuthenticatedRoute,
+  } as any)
+const ApiPublicTelegramWebhookRoute =
+  ApiPublicTelegramWebhookRouteImport.update({
+    id: '/api/public/telegram/webhook',
+    path: '/api/public/telegram/webhook',
+    getParentRoute: () => rootRouteImport,
   } as any)
 
 export interface FileRoutesByFullPath {
@@ -74,7 +101,11 @@ export interface FileRoutesByFullPath {
   '/signup': typeof SignupRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/transacciones': typeof AuthenticatedTransaccionesRoute
+  '/accept-invite/$token': typeof AcceptInviteTokenRoute
   '/settings/fixed-costs': typeof AuthenticatedSettingsFixedCostsRoute
+  '/settings/general': typeof AuthenticatedSettingsGeneralRoute
+  '/settings/team': typeof AuthenticatedSettingsTeamRoute
+  '/api/public/telegram/webhook': typeof ApiPublicTelegramWebhookRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -84,7 +115,11 @@ export interface FileRoutesByTo {
   '/signup': typeof SignupRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/transacciones': typeof AuthenticatedTransaccionesRoute
+  '/accept-invite/$token': typeof AcceptInviteTokenRoute
   '/settings/fixed-costs': typeof AuthenticatedSettingsFixedCostsRoute
+  '/settings/general': typeof AuthenticatedSettingsGeneralRoute
+  '/settings/team': typeof AuthenticatedSettingsTeamRoute
+  '/api/public/telegram/webhook': typeof ApiPublicTelegramWebhookRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -96,7 +131,11 @@ export interface FileRoutesById {
   '/signup': typeof SignupRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/transacciones': typeof AuthenticatedTransaccionesRoute
+  '/accept-invite/$token': typeof AcceptInviteTokenRoute
   '/_authenticated/settings/fixed-costs': typeof AuthenticatedSettingsFixedCostsRoute
+  '/_authenticated/settings/general': typeof AuthenticatedSettingsGeneralRoute
+  '/_authenticated/settings/team': typeof AuthenticatedSettingsTeamRoute
+  '/api/public/telegram/webhook': typeof ApiPublicTelegramWebhookRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -108,7 +147,11 @@ export interface FileRouteTypes {
     | '/signup'
     | '/dashboard'
     | '/transacciones'
+    | '/accept-invite/$token'
     | '/settings/fixed-costs'
+    | '/settings/general'
+    | '/settings/team'
+    | '/api/public/telegram/webhook'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -118,7 +161,11 @@ export interface FileRouteTypes {
     | '/signup'
     | '/dashboard'
     | '/transacciones'
+    | '/accept-invite/$token'
     | '/settings/fixed-costs'
+    | '/settings/general'
+    | '/settings/team'
+    | '/api/public/telegram/webhook'
   id:
     | '__root__'
     | '/'
@@ -129,7 +176,11 @@ export interface FileRouteTypes {
     | '/signup'
     | '/_authenticated/dashboard'
     | '/_authenticated/transacciones'
+    | '/accept-invite/$token'
     | '/_authenticated/settings/fixed-costs'
+    | '/_authenticated/settings/general'
+    | '/_authenticated/settings/team'
+    | '/api/public/telegram/webhook'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -139,6 +190,8 @@ export interface RootRouteChildren {
   LoginRoute: typeof LoginRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   SignupRoute: typeof SignupRoute
+  AcceptInviteTokenRoute: typeof AcceptInviteTokenRoute
+  ApiPublicTelegramWebhookRoute: typeof ApiPublicTelegramWebhookRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -185,6 +238,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/accept-invite/$token': {
+      id: '/accept-invite/$token'
+      path: '/accept-invite/$token'
+      fullPath: '/accept-invite/$token'
+      preLoaderRoute: typeof AcceptInviteTokenRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_authenticated/transacciones': {
       id: '/_authenticated/transacciones'
       path: '/transacciones'
@@ -199,12 +259,33 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedDashboardRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/settings/team': {
+      id: '/_authenticated/settings/team'
+      path: '/settings/team'
+      fullPath: '/settings/team'
+      preLoaderRoute: typeof AuthenticatedSettingsTeamRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/settings/general': {
+      id: '/_authenticated/settings/general'
+      path: '/settings/general'
+      fullPath: '/settings/general'
+      preLoaderRoute: typeof AuthenticatedSettingsGeneralRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
     '/_authenticated/settings/fixed-costs': {
       id: '/_authenticated/settings/fixed-costs'
       path: '/settings/fixed-costs'
       fullPath: '/settings/fixed-costs'
       preLoaderRoute: typeof AuthenticatedSettingsFixedCostsRouteImport
       parentRoute: typeof AuthenticatedRoute
+    }
+    '/api/public/telegram/webhook': {
+      id: '/api/public/telegram/webhook'
+      path: '/api/public/telegram/webhook'
+      fullPath: '/api/public/telegram/webhook'
+      preLoaderRoute: typeof ApiPublicTelegramWebhookRouteImport
+      parentRoute: typeof rootRouteImport
     }
   }
 }
@@ -213,12 +294,16 @@ interface AuthenticatedRouteChildren {
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
   AuthenticatedTransaccionesRoute: typeof AuthenticatedTransaccionesRoute
   AuthenticatedSettingsFixedCostsRoute: typeof AuthenticatedSettingsFixedCostsRoute
+  AuthenticatedSettingsGeneralRoute: typeof AuthenticatedSettingsGeneralRoute
+  AuthenticatedSettingsTeamRoute: typeof AuthenticatedSettingsTeamRoute
 }
 
 const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
   AuthenticatedTransaccionesRoute: AuthenticatedTransaccionesRoute,
   AuthenticatedSettingsFixedCostsRoute: AuthenticatedSettingsFixedCostsRoute,
+  AuthenticatedSettingsGeneralRoute: AuthenticatedSettingsGeneralRoute,
+  AuthenticatedSettingsTeamRoute: AuthenticatedSettingsTeamRoute,
 }
 
 const AuthenticatedRouteWithChildren = AuthenticatedRoute._addFileChildren(
@@ -232,6 +317,8 @@ const rootRouteChildren: RootRouteChildren = {
   LoginRoute: LoginRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   SignupRoute: SignupRoute,
+  AcceptInviteTokenRoute: AcceptInviteTokenRoute,
+  ApiPublicTelegramWebhookRoute: ApiPublicTelegramWebhookRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
