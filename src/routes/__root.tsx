@@ -123,11 +123,16 @@ function AuthListener() {
   const router = useRouter();
   const qc = useQueryClient();
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+      if (event === "SIGNED_OUT") {
+        qc.clear();
+      } else {
+        qc.invalidateQueries();
+      }
       router.invalidate();
-      qc.invalidateQueries();
     });
     return () => subscription.unsubscribe();
+
   }, [router, qc]);
   return null;
 }
