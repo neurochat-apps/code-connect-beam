@@ -43,7 +43,8 @@ export async function getSpreadsheetMeta(spreadsheetId: string): Promise<SheetMe
 }
 
 export async function getSheetValues(spreadsheetId: string, range: string): Promise<string[][]> {
-  const url = `${GATEWAY}/spreadsheets/${spreadsheetId}/values/${range}?valueRenderOption=UNFORMATTED_VALUE&dateTimeRenderOption=FORMATTED_STRING`;
+  const encoded = encodeURI(range); // encodes spaces, preserves : and !
+  const url = `${GATEWAY}/spreadsheets/${spreadsheetId}/values/${encoded}?valueRenderOption=UNFORMATTED_VALUE&dateTimeRenderOption=FORMATTED_STRING`;
   const res = await fetch(url, { headers: headers() });
   if (!res.ok) throw new Error(`Google Sheets error ${res.status}: ${await res.text()}`);
   const data = await res.json();
