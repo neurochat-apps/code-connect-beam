@@ -4,6 +4,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { previewSheet, importSheet, revertImport } from "@/lib/import.functions";
+import { syncStripeAccount } from "@/lib/stripe-sync.functions";
 import { AppShell } from "@/components/AppShell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -32,6 +33,21 @@ function ImportPage() {
   const previewFn = useServerFn(previewSheet);
   const importFn = useServerFn(importSheet);
   const revertFn = useServerFn(revertImport);
+  const stripeSyncFn = useServerFn(syncStripeAccount);
+  const [stripeSince, setStripeSince] = useState("2026-06-01");
+  const [stripeLoading, setStripeLoading] = useState(false);
+  const [stripeResult, setStripeResult] = useState<{ inserted: number; skipped: number; scanned: number } | null>(null);
+
+  async function doStripeSync() {
+    if (!wsId) return;
+    setStripeLoading(true); setStripeResult(null);
+    try {
+      const r = await stripeSyncFn({ data: { workspace_id: wsId, since: stripeSince } });
+      setStripeResult(r);
+      toast.success(`Stripe: ${r.inserted} transacciones nuevas (${r.scanned} revisadas)`);
+    } catch (e: any) { toast.error(e.message); }
+    finally { setStripeLoading(false); }
+  }
 
   const { data: workspaces } = useQuery({
     queryKey: ["workspaces"],
@@ -96,14 +112,38 @@ function ImportPage() {
     <AppShell>
       <div className="space-y-6 max-w-5xl">
         <div>
-          <h1 className="font-serif text-3xl">Importar desde Google Sheets</h1>
+          <h1 className="font-serif text-3xl">Importar transacciones</h1>
           <p className="text-sm text-muted-foreground mt-1">
-            Pega el link de tu hoja consolidada y mapea las columnas para cargar tu histórico.
+            Sincroniza Stripe o importa desde Google Sheets.
           </p>
         </div>
 
         <Card>
-          <CardHeader><CardTitle>1. Hoja de cálculo</CardTitle></CardHeader>
+          <CardHeader><CardTitle>Sincronizar Stripe</CardTitle></CardHeader>
+          <CardContent className="space-y-3">
+            <p className="text-xs text-muted-foreground">
+              Importa cada cobro, comisión y reembolso de tu cuenta Stripe como ingreso/egreso.
+              Es idempotente: puedes ejecutarlo cuantas veces quieras.
+            </p>
+            <div className="flex gap-2 items-end">
+              <div className="space-y-1">
+                <Label className="text-xs">Desde</Label>
+                <Input type="date" value={stripeSince} onChange={(e) => setStripeSince(e.target.value)} className="w-44" />
+              </div>
+              <Button onClick={doStripeSync} disabled={stripeLoading || !wsId}>
+                {stripeLoading ? "Sincronizando..." : "Sincronizar Stripe"}
+              </Button>
+            </div>
+            {stripeResult && (
+              <p className="text-sm">
+                <b>{stripeResult.inserted}</b> transacciones nuevas · {stripeResult.skipped} omitidas · {stripeResult.scanned} revisadas
+              </p>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader><CardTitle>Google Sheets — 1. Hoja de cálculo</CardTitle></CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
               <Label>URL de Google Sheets</Label>
