@@ -5,6 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { previewSheet, importSheet, revertImport } from "@/lib/import.functions";
 import { syncStripeAccount } from "@/lib/stripe-sync.functions";
+import { importCondorSheet } from "@/lib/condor-import.functions";
 import { AppShell } from "@/components/AppShell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -34,9 +35,14 @@ function ImportPage() {
   const importFn = useServerFn(importSheet);
   const revertFn = useServerFn(revertImport);
   const stripeSyncFn = useServerFn(syncStripeAccount);
+  const condorFn = useServerFn(importCondorSheet);
   const [stripeSince, setStripeSince] = useState("2026-06-01");
   const [stripeLoading, setStripeLoading] = useState(false);
   const [stripeResult, setStripeResult] = useState<{ inserted: number; skipped: number; scanned: number } | null>(null);
+  const [condorUrl, setCondorUrl] = useState("https://docs.google.com/spreadsheets/d/1VAOPJvrYMDZthudxHfzEbtcvcQpdNhDLb2W71no54iY/edit");
+  const [condorSince, setCondorSince] = useState("2026-06");
+  const [condorLoading, setCondorLoading] = useState(false);
+  const [condorResult, setCondorResult] = useState<{ inserted: number; perSheet: { sheet: string; rows: number; skipped: number }[] } | null>(null);
 
   async function doStripeSync() {
     if (!wsId) return;
@@ -47,6 +53,18 @@ function ImportPage() {
       toast.success(`Stripe: ${r.inserted} transacciones nuevas (${r.scanned} revisadas)`);
     } catch (e: any) { toast.error(e.message); }
     finally { setStripeLoading(false); }
+  }
+
+  async function doCondor() {
+    if (!wsId) return;
+    const [y, m] = condorSince.split("-").map(Number);
+    setCondorLoading(true); setCondorResult(null);
+    try {
+      const r = await condorFn({ data: { workspace_id: wsId, url: condorUrl, since_year: y, since_month: m } });
+      setCondorResult(r);
+      toast.success(`Cóndor: ${r.inserted} transacciones importadas`);
+    } catch (e: any) { toast.error(e.message); }
+    finally { setCondorLoading(false); }
   }
 
   const { data: workspaces } = useQuery({
