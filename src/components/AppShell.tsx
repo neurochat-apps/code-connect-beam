@@ -2,7 +2,7 @@ import { Link, useNavigate, useLocation } from "@tanstack/react-router";
 import { type ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { LogOut, LayoutDashboard, ListOrdered, Settings, Brain, BarChart3 } from "lucide-react";
+import { LogOut, LayoutDashboard, ListOrdered, Settings, Brain, Wallet } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export function AppShell({ children, onOpenAI }: { children: ReactNode; onOpenAI?: () => void }) {
@@ -16,8 +16,8 @@ export function AppShell({ children, onOpenAI }: { children: ReactNode; onOpenAI
 
   const nav = [
     { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-    { to: "/categorias", label: "Categorías", icon: BarChart3 },
     { to: "/transacciones", label: "Transacciones", icon: ListOrdered },
+    { to: "/cartera", label: "Cartera", icon: Wallet },
     { to: "/settings/catalog", label: "Catálogo", icon: Settings },
     { to: "/settings/fixed-costs", label: "Costos fijos", icon: Settings },
     { to: "/settings/import", label: "Importar", icon: Settings },
