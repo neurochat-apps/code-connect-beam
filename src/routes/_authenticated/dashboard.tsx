@@ -8,7 +8,8 @@ import { TransactionDialog } from "@/components/TransactionDialog";
 import { AIChatDialog } from "@/components/AIChatDialog";
 import { Button } from "@/components/ui/button";
 import { getMyWorkspaces, getDashboard } from "@/lib/finanzas.functions";
-import { fmtCOP, fmtUSD, fmtShortDate, periodRange, type Period } from "@/lib/format";
+import { fmtCOP, fmtUSD, fmtShortDate, periodRange, monthRange, currentYM, type Period } from "@/lib/format";
+import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
@@ -18,7 +19,11 @@ export const Route = createFileRoute("/_authenticated/dashboard")({
 function DashboardPage() {
   const wsFn = useServerFn(getMyWorkspaces);
   const dashFn = useServerFn(getDashboard);
+  const [mode, setMode] = useState<"period" | "month" | "custom">("period");
   const [period, setPeriod] = useState<Period>("month");
+  const [ym, setYm] = useState<string>(currentYM());
+  const [customFrom, setCustomFrom] = useState<string>(() => new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().slice(0, 10));
+  const [customTo, setCustomTo] = useState<string>(() => new Date().toISOString().slice(0, 10));
   const [open, setOpen] = useState(false);
   const [aiOpen, setAiOpen] = useState(false);
 
@@ -27,10 +32,13 @@ function DashboardPage() {
     queryFn: () => wsFn(),
   });
   const ws = workspaces[0];
-  const range = periodRange(period);
+  const range =
+    mode === "period" ? periodRange(period)
+    : mode === "month" ? monthRange(ym)
+    : { from: customFrom, to: customTo };
 
   const { data, isLoading } = useQuery({
-    queryKey: ["dashboard", ws?.id, period],
+    queryKey: ["dashboard", ws?.id, mode, period, ym, customFrom, customTo],
     queryFn: () => dashFn({ data: { workspace_id: ws.id, from: range.from, to: range.to } }),
     enabled: !!ws?.id,
   });
@@ -48,14 +56,36 @@ function DashboardPage() {
           </Button>
         </div>
 
-        <div className="flex gap-1 overflow-x-auto pb-1">
-          {(["today", "week", "month", "quarter", "year"] as Period[]).map((p) => (
-            <button key={p} onClick={() => setPeriod(p)}
+        <div className="space-y-2">
+          <div className="flex gap-1 overflow-x-auto pb-1">
+            {(["today", "week", "month", "quarter", "year"] as Period[]).map((p) => (
+              <button key={p} onClick={() => { setMode("period"); setPeriod(p); }}
+                className={cn("px-3 py-1.5 text-xs rounded-full border whitespace-nowrap",
+                  mode === "period" && period === p ? "bg-primary text-primary-foreground border-primary" : "border-border bg-card hover:bg-accent")}>
+                {p === "today" ? "Hoy" : p === "week" ? "Semana" : p === "month" ? "Mes" : p === "quarter" ? "Trimestre" : "Año"}
+              </button>
+            ))}
+            <button onClick={() => setMode("month")}
               className={cn("px-3 py-1.5 text-xs rounded-full border whitespace-nowrap",
-                period === p ? "bg-primary text-primary-foreground border-primary" : "border-border bg-card hover:bg-accent")}>
-              {p === "today" ? "Hoy" : p === "week" ? "Semana" : p === "month" ? "Mes" : p === "quarter" ? "Trimestre" : "Año"}
+                mode === "month" ? "bg-primary text-primary-foreground border-primary" : "border-border bg-card hover:bg-accent")}>
+              Mes específico
             </button>
-          ))}
+            <button onClick={() => setMode("custom")}
+              className={cn("px-3 py-1.5 text-xs rounded-full border whitespace-nowrap",
+                mode === "custom" ? "bg-primary text-primary-foreground border-primary" : "border-border bg-card hover:bg-accent")}>
+              Rango personalizado
+            </button>
+          </div>
+          {mode === "month" && (
+            <Input type="month" value={ym} onChange={(e) => setYm(e.target.value)} className="h-8 w-44 text-xs" />
+          )}
+          {mode === "custom" && (
+            <div className="flex gap-2 items-center">
+              <Input type="date" value={customFrom} onChange={(e) => setCustomFrom(e.target.value)} className="h-8 w-40 text-xs" />
+              <span className="text-xs text-muted-foreground">→</span>
+              <Input type="date" value={customTo} onChange={(e) => setCustomTo(e.target.value)} className="h-8 w-40 text-xs" />
+            </div>
+          )}
         </div>
 
         {isLoading || !data ? (
