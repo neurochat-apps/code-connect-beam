@@ -347,6 +347,24 @@ function ImportPage() {
             </CardContent>
           </Card>
         )}
+
+        <Card className="border-destructive/40">
+          <CardHeader><CardTitle className="text-destructive">Zona peligrosa</CardTitle></CardHeader>
+          <CardContent className="space-y-3">
+            <p className="text-xs text-muted-foreground">
+              Elimina <b>TODAS</b> las transacciones del workspace. Útil para empezar desde cero antes de reimportar Sheets o resincronizar Stripe. Esta acción no se puede deshacer.
+            </p>
+            <div className="flex gap-2 items-end">
+              <div className="space-y-1 flex-1 max-w-xs">
+                <Label className="text-xs">Escribe <b>ELIMINAR</b> para confirmar</Label>
+                <Input value={wipeConfirm} onChange={(e) => setWipeConfirm(e.target.value)} placeholder="ELIMINAR" />
+              </div>
+              <Button variant="destructive" onClick={doWipe} disabled={wipeConfirm !== "ELIMINAR" || wipeLoading || !wsId}>
+                {wipeLoading ? "Eliminando..." : "Eliminar todas las transacciones"}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     </AppShell>
   );
