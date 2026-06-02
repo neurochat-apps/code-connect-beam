@@ -34,9 +34,11 @@ export function fmtShortDate(d: string | Date): string {
 
 export type Period = "today" | "week" | "month" | "quarter" | "year";
 
+function iso(d: Date) { return d.toISOString().slice(0, 10); }
+
 export function periodRange(p: Period): { from: string; to: string } {
   const now = new Date();
-  const to = now.toISOString().slice(0, 10);
+  const to = iso(now);
   const from = new Date(now);
   switch (p) {
     case "today": break;
@@ -45,5 +47,18 @@ export function periodRange(p: Period): { from: string; to: string } {
     case "quarter": from.setMonth(now.getMonth() - 3); break;
     case "year": from.setMonth(0); from.setDate(1); break;
   }
-  return { from: from.toISOString().slice(0, 10), to };
+  return { from: iso(from), to };
+}
+
+/** YYYY-MM → rango del mes completo */
+export function monthRange(ym: string): { from: string; to: string } {
+  const [y, m] = ym.split("-").map(Number);
+  const from = new Date(y, m - 1, 1);
+  const to = new Date(y, m, 0); // último día del mes
+  return { from: iso(from), to: iso(to) };
+}
+
+export function currentYM(): string {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
 }
