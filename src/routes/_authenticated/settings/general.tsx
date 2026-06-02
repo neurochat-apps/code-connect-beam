@@ -24,18 +24,20 @@ function GeneralPage() {
   const [name, setName] = useState("");
   const [rate, setRate] = useState<number>(4000);
   const [tgId, setTgId] = useState("");
+  const [goal, setGoal] = useState<number>(0);
 
   useEffect(() => {
     if (ws) {
       setName(ws.name);
       setRate(Number(ws.usd_cop_rate));
       setTgId(ws.telegram_group_id ?? "");
+      setGoal(Number((ws as any).monthly_goal ?? 0));
     }
   }, [ws?.id]);
 
   const save = useMutation({
     mutationFn: () => updFn({ data: {
-      id: ws.id, name, usd_cop_rate: rate, telegram_group_id: tgId || null,
+      id: ws.id, name, usd_cop_rate: rate, telegram_group_id: tgId || null, monthly_goal: goal,
     }}),
     onSuccess: () => { toast.success("Guardado"); qc.invalidateQueries({ queryKey: ["workspaces"] }); },
     onError: (e: any) => toast.error(e.message),
@@ -46,7 +48,7 @@ function GeneralPage() {
       <div className="max-w-xl space-y-6">
         <div>
           <h1 className="font-serif text-4xl">Configuración</h1>
-          <p className="text-sm text-muted-foreground mt-1">Espacio de trabajo y tasa de cambio.</p>
+          <p className="text-sm text-muted-foreground mt-1">Espacio de trabajo, tasa de cambio y meta.</p>
         </div>
 
         <div className="rounded-2xl border border-border bg-card p-5 space-y-4">
@@ -57,6 +59,11 @@ function GeneralPage() {
           <div>
             <Label>TRM (COP por 1 USD)</Label>
             <Input type="number" value={rate} onChange={(e) => setRate(Number(e.target.value))} />
+          </div>
+          <div>
+            <Label>Meta de facturación mensual (COP)</Label>
+            <Input type="number" value={goal} onChange={(e) => setGoal(Number(e.target.value))} placeholder="Ej: 50000000" />
+            <p className="text-xs text-muted-foreground mt-1">Se usa en la barra de progreso del dashboard.</p>
           </div>
           <div>
             <Label>Telegram Group ID</Label>

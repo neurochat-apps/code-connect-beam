@@ -18,6 +18,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AcceptInviteTokenRouteImport } from './routes/accept-invite.$token'
 import { Route as AuthenticatedTransaccionesRouteImport } from './routes/_authenticated/transacciones'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
+import { Route as AuthenticatedCarteraRouteImport } from './routes/_authenticated/cartera'
 import { Route as AuthenticatedSettingsTeamRouteImport } from './routes/_authenticated/settings/team'
 import { Route as AuthenticatedSettingsImportRouteImport } from './routes/_authenticated/settings/import'
 import { Route as AuthenticatedSettingsGeneralRouteImport } from './routes/_authenticated/settings/general'
@@ -71,6 +72,11 @@ const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
   path: '/dashboard',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
+const AuthenticatedCarteraRoute = AuthenticatedCarteraRouteImport.update({
+  id: '/cartera',
+  path: '/cartera',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
 const AuthenticatedSettingsTeamRoute =
   AuthenticatedSettingsTeamRouteImport.update({
     id: '/settings/team',
@@ -120,6 +126,7 @@ export interface FileRoutesByFullPath {
   '/login': typeof LoginRoute
   '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
+  '/cartera': typeof AuthenticatedCarteraRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/transacciones': typeof AuthenticatedTransaccionesRoute
   '/accept-invite/$token': typeof AcceptInviteTokenRoute
@@ -137,6 +144,7 @@ export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
+  '/cartera': typeof AuthenticatedCarteraRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/transacciones': typeof AuthenticatedTransaccionesRoute
   '/accept-invite/$token': typeof AcceptInviteTokenRoute
@@ -156,6 +164,7 @@ export interface FileRoutesById {
   '/login': typeof LoginRoute
   '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
+  '/_authenticated/cartera': typeof AuthenticatedCarteraRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/transacciones': typeof AuthenticatedTransaccionesRoute
   '/accept-invite/$token': typeof AcceptInviteTokenRoute
@@ -175,6 +184,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/reset-password'
     | '/signup'
+    | '/cartera'
     | '/dashboard'
     | '/transacciones'
     | '/accept-invite/$token'
@@ -192,6 +202,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/reset-password'
     | '/signup'
+    | '/cartera'
     | '/dashboard'
     | '/transacciones'
     | '/accept-invite/$token'
@@ -210,6 +221,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/reset-password'
     | '/signup'
+    | '/_authenticated/cartera'
     | '/_authenticated/dashboard'
     | '/_authenticated/transacciones'
     | '/accept-invite/$token'
@@ -299,6 +311,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedDashboardRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/cartera': {
+      id: '/_authenticated/cartera'
+      path: '/cartera'
+      fullPath: '/cartera'
+      preLoaderRoute: typeof AuthenticatedCarteraRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
     '/_authenticated/settings/team': {
       id: '/_authenticated/settings/team'
       path: '/settings/team'
@@ -352,6 +371,7 @@ declare module '@tanstack/react-router' {
 }
 
 interface AuthenticatedRouteChildren {
+  AuthenticatedCarteraRoute: typeof AuthenticatedCarteraRoute
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
   AuthenticatedTransaccionesRoute: typeof AuthenticatedTransaccionesRoute
   AuthenticatedSettingsCatalogRoute: typeof AuthenticatedSettingsCatalogRoute
@@ -362,6 +382,7 @@ interface AuthenticatedRouteChildren {
 }
 
 const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
+  AuthenticatedCarteraRoute: AuthenticatedCarteraRoute,
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
   AuthenticatedTransaccionesRoute: AuthenticatedTransaccionesRoute,
   AuthenticatedSettingsCatalogRoute: AuthenticatedSettingsCatalogRoute,

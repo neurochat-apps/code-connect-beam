@@ -1,24 +1,29 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { Plus, ArrowUpRight, ArrowDownRight, Wallet, TrendingUp } from "lucide-react";
+import { Plus, ArrowUpRight, ArrowDownRight, Wallet, TrendingUp, Target } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { TransactionDialog } from "@/components/TransactionDialog";
 import { AIChatDialog } from "@/components/AIChatDialog";
 import { Button } from "@/components/ui/button";
-import { getMyWorkspaces, getDashboard } from "@/lib/finanzas.functions";
+import { getMyWorkspaces, getDashboard, getCategoryBreakdown } from "@/lib/finanzas.functions";
 import { fmtCOP, fmtUSD, fmtShortDate, periodRange, monthRange, currentYM, type Period } from "@/lib/format";
 import { Input } from "@/components/ui/input";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
   component: DashboardPage,
 });
 
+type CurFilter = "ALL" | "COP" | "USD";
+type TxType = "ingreso" | "egreso";
+
 function DashboardPage() {
   const wsFn = useServerFn(getMyWorkspaces);
   const dashFn = useServerFn(getDashboard);
+  const breakdownFn = useServerFn(getCategoryBreakdown);
   const [mode, setMode] = useState<"period" | "month" | "custom">("period");
   const [period, setPeriod] = useState<Period>("month");
   const [ym, setYm] = useState<string>(currentYM());
@@ -26,20 +31,30 @@ function DashboardPage() {
   const [customTo, setCustomTo] = useState<string>(() => new Date().toISOString().slice(0, 10));
   const [open, setOpen] = useState(false);
   const [aiOpen, setAiOpen] = useState(false);
+  const [catType, setCatType] = useState<TxType>("egreso");
+  const [currency, setCurrency] = useState<CurFilter>("ALL");
+  const [selectedCat, setSelectedCat] = useState<any | null>(null);
 
   const { data: workspaces = [] } = useQuery({
     queryKey: ["workspaces"],
     queryFn: () => wsFn(),
   });
   const ws = workspaces[0];
-  const range =
+  const range = useMemo(() =>
     mode === "period" ? periodRange(period)
     : mode === "month" ? monthRange(ym)
-    : { from: customFrom, to: customTo };
+    : { from: customFrom, to: customTo },
+  [mode, period, ym, customFrom, customTo]);
 
   const { data, isLoading } = useQuery({
-    queryKey: ["dashboard", ws?.id, mode, period, ym, customFrom, customTo],
+    queryKey: ["dashboard", ws?.id, range.from, range.to],
     queryFn: () => dashFn({ data: { workspace_id: ws.id, from: range.from, to: range.to } }),
+    enabled: !!ws?.id,
+  });
+
+  const { data: catData } = useQuery({
+    queryKey: ["cat-breakdown", ws?.id, range.from, range.to, catType, currency],
+    queryFn: () => breakdownFn({ data: { workspace_id: ws.id, from: range.from, to: range.to, type: catType, currency } }),
     enabled: !!ws?.id,
   });
 
@@ -157,14 +172,118 @@ function DashboardPage() {
                 </div>
               </div>
             </div>
+
+            {/* Categorías embebidas */}
+            <div className="rounded-2xl bg-card border border-border p-5">
+              <div className="flex items-baseline justify-between flex-wrap gap-3 mb-4">
+                <h2 className="font-serif text-2xl">Categorías</h2>
+                <div className="flex gap-2 items-center">
+                  <div className="flex gap-1">
+                    {(["ingreso", "egreso"] as TxType[]).map((t) => (
+                      <button key={t} onClick={() => setCatType(t)}
+                        className={cn("px-3 py-1.5 text-xs rounded-full border capitalize",
+                          catType === t
+                            ? t === "ingreso" ? "bg-primary text-primary-foreground border-primary" : "bg-foreground text-background border-foreground"
+                            : "border-border bg-card hover:bg-accent")}>
+                        {t === "ingreso" ? "Ingresos" : "Egresos"}
+                      </button>
+                    ))}
+                  </div>
+                  <div className="flex gap-1">
+                    {(["ALL", "COP", "USD"] as CurFilter[]).map((c) => (
+                      <button key={c} onClick={() => setCurrency(c)}
+                        className={cn("px-3 py-1.5 text-xs rounded-full border",
+                          currency === c ? "bg-primary text-primary-foreground border-primary" : "border-border bg-card hover:bg-accent")}>
+                        {c === "ALL" ? "Todas" : c}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {!catData || catData.breakdown.length === 0 ? (
+                <p className="text-sm text-muted-foreground">Sin movimientos en este rango.</p>
+              ) : (
+                <CategoryBars data={catData} type={catType} onSelect={setSelectedCat} />
+              )}
+            </div>
           </>
         )}
       </div>
+
+      {/* Detalle categoría */}
+      <Dialog open={!!selectedCat} onOpenChange={(v) => !v && setSelectedCat(null)}>
+        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="font-serif text-2xl">
+              {selectedCat?.code} · {selectedCat?.name}
+            </DialogTitle>
+          </DialogHeader>
+          {selectedCat && (
+            <div className="space-y-4">
+              <div className="flex items-baseline gap-4">
+                <div className="num-serif text-3xl">{fmtCOP(selectedCat.amount)}</div>
+                <div className="text-sm text-muted-foreground">{selectedCat.count} mov · {selectedCat.pct.toFixed(1)}%</div>
+              </div>
+              <ul className="divide-y divide-border">
+                {selectedCat.txns.map((t: any) => (
+                  <li key={t.id} className="py-3 flex items-center gap-3">
+                    <div className="flex-1 min-w-0">
+                      <div className="text-sm font-medium truncate">{t.concept}</div>
+                      <div className="text-xs text-muted-foreground flex gap-2 mt-0.5 flex-wrap">
+                        <span>{fmtShortDate(t.date)}</span>
+                        <span>·</span>
+                        <span className="capitalize">{t.account}</span>
+                        {t.client && (<><span>·</span><span>{t.client.name}</span></>)}
+                      </div>
+                    </div>
+                    <div className={cn("num text-sm font-medium",
+                      catType === "ingreso" ? "text-primary" : "text-foreground")}>
+                      {catType === "ingreso" ? "+" : "−"}{t.currency === "USD" ? fmtUSD(t.amount) : fmtCOP(t.amount)}
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
 
       {ws && <TransactionDialog open={open} onOpenChange={setOpen} workspaceId={ws.id} />}
       <AIChatDialog open={aiOpen} onOpenChange={setAiOpen} workspaceId={ws?.id} />
 
     </AppShell>
+  );
+}
+
+function CategoryBars({ data, type, onSelect }: { data: any; type: TxType; onSelect: (c: any) => void }) {
+  const max = data.breakdown[0]?.amount ?? 0;
+  return (
+    <div className="overflow-x-auto">
+      <div className="flex items-end gap-3 min-h-72 pb-2" style={{ minWidth: `${data.breakdown.length * 96}px` }}>
+        {data.breakdown.map((c: any) => {
+          const h = max > 0 ? Math.max(8, (c.amount / max) * 240) : 8;
+          const isIngreso = type === "ingreso";
+          return (
+            <button key={c.id} onClick={() => onSelect(c)}
+              className="flex-1 min-w-20 flex flex-col items-center gap-1.5 group">
+              <div className="text-[10px] font-mono text-muted-foreground">{c.pct.toFixed(0)}%</div>
+              <div
+                className={cn("w-full rounded-t-xl transition-all group-hover:opacity-80",
+                  isIngreso ? "bg-primary" : "bg-foreground")}
+                style={{ height: `${h}px` }}
+              />
+              <div className="text-[11px] num tabular-nums font-medium text-center leading-tight">
+                {fmtCOP(c.amount)}
+              </div>
+              <div className="text-[10px] text-muted-foreground text-center leading-tight line-clamp-2 px-1" title={c.name}>
+                {c.code} · {c.name}
+              </div>
+            </button>
+          );
+        })}
+      </div>
+    </div>
   );
 }
 
@@ -187,25 +306,50 @@ function SourceBadge({ source }: { source: string }) {
 
 function BreakEvenCard({ be, ingresos }: { be: any; ingresos: number }) {
   const colors = { green: "bg-primary", yellow: "bg-[oklch(0.78_0.13_80)]", red: "bg-destructive" };
-  const labels = { green: "En punto", yellow: "Cerca", red: "Lejos" };
-  const pct = Math.min(100, Math.max(0, be.pctAlcanzado));
+  const labels = { green: "Meta alcanzada", yellow: "Sobre equilibrio", red: "Debajo de equilibrio" };
+  const meta = Number(be.meta ?? 0);
+  const pe = Number(be.puntoEquilibrio ?? 0);
+  const target = meta > 0 ? meta : pe;
+  const pct = target > 0 ? Math.min(100, Math.max(0, (ingresos / target) * 100)) : 0;
+  const equilibriumMark = meta > 0 && pe > 0 ? Math.min(100, (pe / meta) * 100) : null;
+
   return (
     <div className="rounded-2xl bg-card border border-border p-5">
       <div className="flex items-center justify-between mb-2">
-        <h2 className="font-serif text-xl flex items-center gap-2"><TrendingUp className="size-4 text-primary" /> Punto de equilibrio</h2>
+        <h2 className="font-serif text-xl flex items-center gap-2"><TrendingUp className="size-4 text-primary" /> Equilibrio & Meta</h2>
         <span className={cn("size-2.5 rounded-full", colors[be.status as keyof typeof colors])} />
       </div>
-      <div className="num-serif text-3xl">{fmtCOP(be.puntoEquilibrio)}</div>
-      <div className="mt-3 h-2 bg-muted rounded-full overflow-hidden">
+
+      <div className="space-y-1 mb-3">
+        <div className="flex justify-between text-xs">
+          <span className="text-muted-foreground">Punto equilibrio</span>
+          <span className="num font-medium">{fmtCOP(pe)}</span>
+        </div>
+        <div className="flex justify-between text-xs">
+          <span className="text-muted-foreground flex items-center gap-1"><Target className="size-3" /> Meta</span>
+          <span className="num font-medium">{meta > 0 ? fmtCOP(meta) : "— sin definir"}</span>
+        </div>
+      </div>
+
+      <div className="relative mt-3 h-2.5 bg-muted rounded-full overflow-hidden">
         <div className={cn("h-full", colors[be.status as keyof typeof colors])} style={{ width: `${pct}%` }} />
+        {equilibriumMark !== null && (
+          <div
+            className="absolute top-0 bottom-0 w-px bg-foreground/60"
+            style={{ left: `${equilibriumMark}%` }}
+            title="Punto de equilibrio"
+          />
+        )}
       </div>
       <div className="mt-2 flex justify-between text-xs text-muted-foreground">
         <span>{fmtCOP(ingresos)} alcanzado</span>
         <span>{pct.toFixed(0)}% · {labels[be.status as keyof typeof labels]}</span>
       </div>
-      <p className="mt-2 text-[11px] text-muted-foreground">
-        Costos fijos: <span className="num">{fmtCOP(be.costosFijos)}</span> · margen {(be.margen * 100).toFixed(0)}%
-      </p>
+      {meta === 0 && (
+        <p className="mt-2 text-[11px] text-muted-foreground">
+          Define tu meta mensual en Configuración → General.
+        </p>
+      )}
     </div>
   );
 }
