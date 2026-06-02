@@ -89,7 +89,8 @@ export function TransactionDialog({
     onError: (e: any) => toast.error(e.message),
   });
 
-  const filteredCats = categories.filter((c: any) => isTransfer || c.type === type || c.type === "neutro");
+  // Mostrar todas las categorías ordenadas por código; el usuario elige libremente.
+  const filteredCats = [...categories].sort((a: any, b: any) => a.code.localeCompare(b.code));
 
   const [newClientName, setNewClientName] = useState("");
   const [creatingClient, setCreatingClient] = useState(false);
