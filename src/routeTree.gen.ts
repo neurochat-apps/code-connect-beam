@@ -22,6 +22,7 @@ import { Route as AuthenticatedSettingsTeamRouteImport } from './routes/_authent
 import { Route as AuthenticatedSettingsImportRouteImport } from './routes/_authenticated/settings/import'
 import { Route as AuthenticatedSettingsGeneralRouteImport } from './routes/_authenticated/settings/general'
 import { Route as AuthenticatedSettingsFixedCostsRouteImport } from './routes/_authenticated/settings/fixed-costs'
+import { Route as AuthenticatedSettingsCatalogRouteImport } from './routes/_authenticated/settings/catalog'
 import { Route as ApiPublicTelegramWebhookRouteImport } from './routes/api/public/telegram/webhook'
 import { Route as ApiPublicPaymentsWebhookRouteImport } from './routes/api/public/payments/webhook'
 
@@ -94,6 +95,12 @@ const AuthenticatedSettingsFixedCostsRoute =
     path: '/settings/fixed-costs',
     getParentRoute: () => AuthenticatedRoute,
   } as any)
+const AuthenticatedSettingsCatalogRoute =
+  AuthenticatedSettingsCatalogRouteImport.update({
+    id: '/settings/catalog',
+    path: '/settings/catalog',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
 const ApiPublicTelegramWebhookRoute =
   ApiPublicTelegramWebhookRouteImport.update({
     id: '/api/public/telegram/webhook',
@@ -116,6 +123,7 @@ export interface FileRoutesByFullPath {
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/transacciones': typeof AuthenticatedTransaccionesRoute
   '/accept-invite/$token': typeof AcceptInviteTokenRoute
+  '/settings/catalog': typeof AuthenticatedSettingsCatalogRoute
   '/settings/fixed-costs': typeof AuthenticatedSettingsFixedCostsRoute
   '/settings/general': typeof AuthenticatedSettingsGeneralRoute
   '/settings/import': typeof AuthenticatedSettingsImportRoute
@@ -132,6 +140,7 @@ export interface FileRoutesByTo {
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/transacciones': typeof AuthenticatedTransaccionesRoute
   '/accept-invite/$token': typeof AcceptInviteTokenRoute
+  '/settings/catalog': typeof AuthenticatedSettingsCatalogRoute
   '/settings/fixed-costs': typeof AuthenticatedSettingsFixedCostsRoute
   '/settings/general': typeof AuthenticatedSettingsGeneralRoute
   '/settings/import': typeof AuthenticatedSettingsImportRoute
@@ -150,6 +159,7 @@ export interface FileRoutesById {
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/transacciones': typeof AuthenticatedTransaccionesRoute
   '/accept-invite/$token': typeof AcceptInviteTokenRoute
+  '/_authenticated/settings/catalog': typeof AuthenticatedSettingsCatalogRoute
   '/_authenticated/settings/fixed-costs': typeof AuthenticatedSettingsFixedCostsRoute
   '/_authenticated/settings/general': typeof AuthenticatedSettingsGeneralRoute
   '/_authenticated/settings/import': typeof AuthenticatedSettingsImportRoute
@@ -168,6 +178,7 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/transacciones'
     | '/accept-invite/$token'
+    | '/settings/catalog'
     | '/settings/fixed-costs'
     | '/settings/general'
     | '/settings/import'
@@ -184,6 +195,7 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/transacciones'
     | '/accept-invite/$token'
+    | '/settings/catalog'
     | '/settings/fixed-costs'
     | '/settings/general'
     | '/settings/import'
@@ -201,6 +213,7 @@ export interface FileRouteTypes {
     | '/_authenticated/dashboard'
     | '/_authenticated/transacciones'
     | '/accept-invite/$token'
+    | '/_authenticated/settings/catalog'
     | '/_authenticated/settings/fixed-costs'
     | '/_authenticated/settings/general'
     | '/_authenticated/settings/import'
@@ -314,6 +327,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedSettingsFixedCostsRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/settings/catalog': {
+      id: '/_authenticated/settings/catalog'
+      path: '/settings/catalog'
+      fullPath: '/settings/catalog'
+      preLoaderRoute: typeof AuthenticatedSettingsCatalogRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
     '/api/public/telegram/webhook': {
       id: '/api/public/telegram/webhook'
       path: '/api/public/telegram/webhook'
@@ -334,6 +354,7 @@ declare module '@tanstack/react-router' {
 interface AuthenticatedRouteChildren {
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
   AuthenticatedTransaccionesRoute: typeof AuthenticatedTransaccionesRoute
+  AuthenticatedSettingsCatalogRoute: typeof AuthenticatedSettingsCatalogRoute
   AuthenticatedSettingsFixedCostsRoute: typeof AuthenticatedSettingsFixedCostsRoute
   AuthenticatedSettingsGeneralRoute: typeof AuthenticatedSettingsGeneralRoute
   AuthenticatedSettingsImportRoute: typeof AuthenticatedSettingsImportRoute
@@ -343,6 +364,7 @@ interface AuthenticatedRouteChildren {
 const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
   AuthenticatedTransaccionesRoute: AuthenticatedTransaccionesRoute,
+  AuthenticatedSettingsCatalogRoute: AuthenticatedSettingsCatalogRoute,
   AuthenticatedSettingsFixedCostsRoute: AuthenticatedSettingsFixedCostsRoute,
   AuthenticatedSettingsGeneralRoute: AuthenticatedSettingsGeneralRoute,
   AuthenticatedSettingsImportRoute: AuthenticatedSettingsImportRoute,
