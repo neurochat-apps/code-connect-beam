@@ -56,28 +56,46 @@ export type Database = {
         Row: {
           contact: string | null
           created_at: string
+          currency: Database["public"]["Enums"]["txn_currency"]
           id: string
+          monthly_amount: number | null
           name: string
+          next_payment_date: string | null
           notes: string | null
+          project_total: number | null
+          status: Database["public"]["Enums"]["client_status"]
           stripe_customer_id: string | null
+          type: Database["public"]["Enums"]["client_type"]
           workspace_id: string
         }
         Insert: {
           contact?: string | null
           created_at?: string
+          currency?: Database["public"]["Enums"]["txn_currency"]
           id?: string
+          monthly_amount?: number | null
           name: string
+          next_payment_date?: string | null
           notes?: string | null
+          project_total?: number | null
+          status?: Database["public"]["Enums"]["client_status"]
           stripe_customer_id?: string | null
+          type?: Database["public"]["Enums"]["client_type"]
           workspace_id: string
         }
         Update: {
           contact?: string | null
           created_at?: string
+          currency?: Database["public"]["Enums"]["txn_currency"]
           id?: string
+          monthly_amount?: number | null
           name?: string
+          next_payment_date?: string | null
           notes?: string | null
+          project_total?: number | null
+          status?: Database["public"]["Enums"]["client_status"]
           stripe_customer_id?: string | null
+          type?: Database["public"]["Enums"]["client_type"]
           workspace_id?: string
         }
         Relationships: [
@@ -401,11 +419,13 @@ export type Database = {
       is_workspace_member: { Args: { _workspace_id: string }; Returns: boolean }
     }
     Enums: {
+      client_status: "activo" | "pausado" | "completado"
+      client_type: "recurrente" | "proyecto" | "cuota"
       fixed_cost_category: "payroll" | "platform" | "other"
       txn_account: "bancolombia" | "stripe" | "chase" | "efectivo" | "otra"
       txn_currency: "COP" | "USD"
       txn_source: "manual" | "telegram" | "stripe" | "ai_chat" | "import"
-      txn_type: "ingreso" | "egreso"
+      txn_type: "ingreso" | "egreso" | "neutro"
       workspace_role: "owner" | "admin" | "member"
     }
     CompositeTypes: {
@@ -534,11 +554,13 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      client_status: ["activo", "pausado", "completado"],
+      client_type: ["recurrente", "proyecto", "cuota"],
       fixed_cost_category: ["payroll", "platform", "other"],
       txn_account: ["bancolombia", "stripe", "chase", "efectivo", "otra"],
       txn_currency: ["COP", "USD"],
       txn_source: ["manual", "telegram", "stripe", "ai_chat", "import"],
-      txn_type: ["ingreso", "egreso"],
+      txn_type: ["ingreso", "egreso", "neutro"],
       workspace_role: ["owner", "admin", "member"],
     },
   },
