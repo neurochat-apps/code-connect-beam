@@ -357,6 +357,40 @@ export const deleteTransaction = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
+export const deleteTransactions = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((i) => z.object({
+    workspace_id: z.string().uuid(),
+    ids: z.array(z.string().uuid()).min(1).max(2000),
+  }).parse(i))
+  .handler(async ({ data, context }) => {
+    // include paired transactions
+    const { data: paired } = await context.supabase.from("transactions")
+      .select("paired_transaction_id").in("id", data.ids);
+    const allIds = new Set(data.ids);
+    for (const p of paired ?? []) if (p.paired_transaction_id) allIds.add(p.paired_transaction_id);
+    const { error, count } = await context.supabase.from("transactions")
+      .delete({ count: "exact" })
+      .eq("workspace_id", data.workspace_id)
+      .in("id", Array.from(allIds));
+    if (error) throw new Error(error.message);
+    return { deleted: count ?? 0 };
+  });
+
+export const deleteAllTransactions = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((i) => z.object({
+    workspace_id: z.string().uuid(),
+    confirm: z.literal("ELIMINAR"),
+  }).parse(i))
+  .handler(async ({ data, context }) => {
+    const { error, count } = await context.supabase.from("transactions")
+      .delete({ count: "exact" })
+      .eq("workspace_id", data.workspace_id);
+    if (error) throw new Error(error.message);
+    return { deleted: count ?? 0 };
+  });
+
 // ============ DASHBOARD ============
 
 export const getDashboard = createServerFn({ method: "GET" })
