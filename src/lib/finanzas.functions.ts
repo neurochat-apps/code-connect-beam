@@ -638,3 +638,56 @@ export const acceptInvitation = createServerFn({ method: "POST" })
     await supabaseAdmin.from("workspace_invitations").update({ accepted_at: new Date().toISOString() }).eq("id", inv.id);
     return { workspace_id: inv.workspace_id };
   });
+
+// ============ CARTERA ============
+
+export const listCartera = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((i) => z.object({ workspace_id: z.string().uuid() }).parse(i))
+  .handler(async ({ data, context }) => {
+    const { supabase } = context;
+    const [{ data: ws }, { data: txns, error }] = await Promise.all([
+      supabase.from("workspaces").select("usd_cop_rate").eq("id", data.workspace_id).single(),
+      supabase.from("transactions")
+        .select("id,date,concept,amount,currency,client_id,client:clients(id,name,next_payment_date)")
+        .eq("workspace_id", data.workspace_id)
+        .eq("type", "ingreso")
+        .eq("is_pending", true)
+        .order("date", { ascending: true }),
+    ]);
+    if (error) throw new Error(error.message);
+    const rate = Number(ws?.usd_cop_rate ?? 4000);
+    const today = new Date(); today.setHours(0, 0, 0, 0);
+    const items = (txns ?? []).map((t: any) => {
+      const due = t.client?.next_payment_date ? new Date(t.client.next_payment_date) : new Date(t.date);
+      due.setHours(0, 0, 0, 0);
+      const diffDays = Math.round((due.getTime() - today.getTime()) / 86400000);
+      const status: "green" | "yellow" | "red" =
+        diffDays < 0 ? "red" : diffDays <= 7 ? "yellow" : "green";
+      const amountCOP = t.currency === "USD" ? Number(t.amount) * rate : Number(t.amount);
+      return {
+        id: t.id, concept: t.concept, date: t.date,
+        amount: Number(t.amount), currency: t.currency, amountCOP,
+        client: t.client ? { id: t.client.id, name: t.client.name } : null,
+        dueDate: due.toISOString().slice(0, 10),
+        diffDays, status,
+      };
+    });
+    const totalCOP = items.filter((i) => i.currency === "COP").reduce((s, i) => s + i.amount, 0);
+    const totalUSD = items.filter((i) => i.currency === "USD").reduce((s, i) => s + i.amount, 0);
+    return { items, totalCOP, totalUSD };
+  });
+
+export const markTransactionPaid = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((i) => z.object({
+    id: z.string().uuid(),
+    date: z.string().optional(),
+  }).parse(i))
+  .handler(async ({ data, context }) => {
+    const patch: any = { is_pending: false };
+    if (data.date) patch.date = data.date;
+    const { error } = await context.supabase.from("transactions").update(patch).eq("id", data.id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
