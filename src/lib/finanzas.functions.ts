@@ -59,13 +59,98 @@ export const createClient = createServerFn({ method: "POST" })
   .inputValidator((i) => z.object({
     workspace_id: z.string().uuid(),
     name: z.string().min(1).max(120),
-    contact: z.string().max(200).optional(),
+    contact: z.string().max(200).optional().nullable(),
+    notes: z.string().max(2000).optional().nullable(),
+    currency: z.enum(["COP", "USD"]).optional(),
+    type: z.enum(["recurrente", "proyecto", "cuota"]).optional(),
+    monthly_amount: z.number().nullable().optional(),
+    project_total: z.number().nullable().optional(),
+    next_payment_date: z.string().nullable().optional(),
+    status: z.enum(["activo", "pausado", "completado"]).optional(),
   }).parse(i))
   .handler(async ({ data, context }) => {
     const { data: row, error } = await context.supabase
       .from("clients").insert(data).select().single();
     if (error) throw new Error(error.message);
     return row;
+  });
+
+export const updateClient = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((i) => z.object({
+    id: z.string().uuid(),
+    name: z.string().min(1).max(120).optional(),
+    contact: z.string().max(200).nullable().optional(),
+    notes: z.string().max(2000).nullable().optional(),
+    currency: z.enum(["COP", "USD"]).optional(),
+    type: z.enum(["recurrente", "proyecto", "cuota"]).optional(),
+    monthly_amount: z.number().nullable().optional(),
+    project_total: z.number().nullable().optional(),
+    next_payment_date: z.string().nullable().optional(),
+    status: z.enum(["activo", "pausado", "completado"]).optional(),
+  }).parse(i))
+  .handler(async ({ data, context }) => {
+    const { id, ...patch } = data;
+    const { error } = await context.supabase.from("clients").update(patch).eq("id", id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+export const deleteClient = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((i) => z.object({ id: z.string().uuid() }).parse(i))
+  .handler(async ({ data, context }) => {
+    const { count } = await context.supabase
+      .from("transactions").select("id", { count: "exact", head: true }).eq("client_id", data.id);
+    if ((count ?? 0) > 0) throw new Error("No se puede eliminar: tiene transacciones asociadas");
+    const { error } = await context.supabase.from("clients").delete().eq("id", data.id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+// ---- Categories CRUD ----
+export const createCategory = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((i) => z.object({
+    workspace_id: z.string().uuid(),
+    code: z.string().min(1).max(20),
+    name: z.string().min(1).max(120),
+    type: z.enum(["ingreso", "egreso", "neutro"]),
+  }).parse(i))
+  .handler(async ({ data, context }) => {
+    const { data: row, error } = await context.supabase
+      .from("categories").insert({ ...data, is_system: false }).select().single();
+    if (error) throw new Error(error.message);
+    return row;
+  });
+
+export const updateCategory = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((i) => z.object({
+    id: z.string().uuid(),
+    name: z.string().min(1).max(120).optional(),
+    type: z.enum(["ingreso", "egreso", "neutro"]).optional(),
+  }).parse(i))
+  .handler(async ({ data, context }) => {
+    const { id, ...patch } = data;
+    const { error } = await context.supabase.from("categories").update(patch).eq("id", id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+export const deleteCategory = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((i) => z.object({ id: z.string().uuid() }).parse(i))
+  .handler(async ({ data, context }) => {
+    const { data: cat } = await context.supabase
+      .from("categories").select("is_system").eq("id", data.id).maybeSingle();
+    if (cat?.is_system) throw new Error("Las categorías del sistema no se pueden eliminar");
+    const { count } = await context.supabase
+      .from("transactions").select("id", { count: "exact", head: true }).eq("category_id", data.id);
+    if ((count ?? 0) > 0) throw new Error("No se puede eliminar: tiene transacciones asociadas");
+    const { error } = await context.supabase.from("categories").delete().eq("id", data.id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
   });
 
 // ============ FIXED COSTS ============
