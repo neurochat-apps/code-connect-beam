@@ -590,11 +590,13 @@ export const acceptInvitation = createServerFn({ method: "POST" })
     if (inv.accepted_at) throw new Error("Invitación ya aceptada");
     if (new Date(inv.expires_at) < new Date()) throw new Error("Invitación expirada");
 
-    const { error: e1 } = await supabase.from("workspace_members").insert({
+    // Use admin client because RLS only allows owners/admins to insert members.
+    // We've already validated the invitation token above.
+    const { error: e1 } = await supabaseAdmin.from("workspace_members").insert({
       workspace_id: inv.workspace_id, user_id: userId, role: inv.role,
     });
     if (e1 && !e1.message.includes("duplicate")) throw new Error(e1.message);
 
-    await supabase.from("workspace_invitations").update({ accepted_at: new Date().toISOString() }).eq("id", inv.id);
+    await supabaseAdmin.from("workspace_invitations").update({ accepted_at: new Date().toISOString() }).eq("id", inv.id);
     return { workspace_id: inv.workspace_id };
   });
