@@ -13,8 +13,9 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import {
-  createTransaction, listCategories, listClients,
+  createTransaction, listCategories, listClients, createClient,
 } from "@/lib/finanzas.functions";
+import { Plus } from "lucide-react";
 
 type Currency = "COP" | "USD";
 type TxType = "ingreso" | "egreso";
@@ -88,7 +89,27 @@ export function TransactionDialog({
     onError: (e: any) => toast.error(e.message),
   });
 
-  const filteredCats = categories.filter((c: any) => isTransfer || c.type === type);
+  const filteredCats = categories.filter((c: any) => isTransfer || c.type === type || c.type === "neutro");
+
+  const [newClientName, setNewClientName] = useState("");
+  const [creatingClient, setCreatingClient] = useState(false);
+  const createClientFn = useServerFn(createClient);
+  async function handleCreateClient() {
+    const name = newClientName.trim();
+    if (!name) return;
+    setCreatingClient(true);
+    try {
+      const c: any = await createClientFn({ data: { workspace_id: workspaceId, name } });
+      await qc.invalidateQueries({ queryKey: ["clients", workspaceId] });
+      setClientId(c.id);
+      setNewClientName("");
+      toast.success("Cliente creado");
+    } catch (e: any) {
+      toast.error(e.message);
+    } finally {
+      setCreatingClient(false);
+    }
+  }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
