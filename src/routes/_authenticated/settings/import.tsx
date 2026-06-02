@@ -6,6 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { previewSheet, importSheet, revertImport } from "@/lib/import.functions";
 import { syncStripeAccount } from "@/lib/stripe-sync.functions";
 import { importCondorSheet } from "@/lib/condor-import.functions";
+import { deleteAllTransactions } from "@/lib/finanzas.functions";
 import { AppShell } from "@/components/AppShell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
