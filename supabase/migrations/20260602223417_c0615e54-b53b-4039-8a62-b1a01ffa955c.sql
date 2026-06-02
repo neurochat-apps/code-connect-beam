@@ -1,0 +1,1 @@
+ALTER TABLE public.workspaces ADD COLUMN IF NOT EXISTS monthly_goal numeric NOT NULL DEFAULT 0;

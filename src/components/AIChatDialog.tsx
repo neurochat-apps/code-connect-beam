@@ -3,9 +3,10 @@ import { useServerFn } from "@tanstack/react-start";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Send, Brain } from "lucide-react";
+import { Send, Brain, Mic, MicOff } from "lucide-react";
 import { chatFinanciero } from "@/lib/ai.functions";
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 
 type Msg = { role: "user" | "assistant"; content: string };
 
@@ -14,13 +15,45 @@ export function AIChatDialog({
 }: { open: boolean; onOpenChange: (v: boolean) => void; workspaceId: string | undefined }) {
   const fn = useServerFn(chatFinanciero);
   const [messages, setMessages] = useState<Msg[]>([
-    { role: "assistant", content: "Hola 👋 Soy tu asistente financiero. Pregúntame por ingresos, gastos, cartera o punto de equilibrio." },
+    { role: "assistant", content: "Hola 👋 Soy tu asistente financiero. Pregúntame por ingresos, gastos, cartera o punto de equilibrio. También puedes dictarme con el micrófono." },
   ]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
+  const [listening, setListening] = useState(false);
   const endRef = useRef<HTMLDivElement>(null);
+  const recogRef = useRef<any>(null);
 
   useEffect(() => { endRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages]);
+
+  const SpeechRecognition = typeof window !== "undefined"
+    ? (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
+    : null;
+  const voiceSupported = !!SpeechRecognition;
+
+  function toggleMic() {
+    if (!voiceSupported) {
+      toast.error("Tu navegador no soporta dictado por voz");
+      return;
+    }
+    if (listening) {
+      recogRef.current?.stop();
+      return;
+    }
+    const rec = new SpeechRecognition();
+    rec.lang = "es-CO";
+    rec.continuous = false;
+    rec.interimResults = true;
+    rec.onresult = (e: any) => {
+      let txt = "";
+      for (let i = e.resultIndex; i < e.results.length; i++) txt += e.results[i][0].transcript;
+      setInput((prev) => (prev ? prev + " " : "") + txt.trim());
+    };
+    rec.onerror = (e: any) => { toast.error(`Voz: ${e.error}`); setListening(false); };
+    rec.onend = () => setListening(false);
+    recogRef.current = rec;
+    setListening(true);
+    rec.start();
+  }
 
   async function send() {
     if (!input.trim() || !workspaceId || loading) return;
@@ -57,12 +90,23 @@ export function AIChatDialog({
             </div>
           ))}
           {loading && <div className="text-xs text-muted-foreground">Pensando…</div>}
+          {listening && <div className="text-xs text-primary animate-pulse">🎙️ Escuchando…</div>}
           <div ref={endRef} />
         </div>
         <div className="border-t border-border p-3 flex gap-2">
+          <Button
+            type="button"
+            onClick={toggleMic}
+            size="icon"
+            variant={listening ? "default" : "outline"}
+            className={cn(listening && "animate-pulse")}
+            title={voiceSupported ? "Dictar por voz" : "Dictado no soportado en este navegador"}
+          >
+            {listening ? <MicOff className="size-4" /> : <Mic className="size-4" />}
+          </Button>
           <Input value={input} onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && send()}
-            placeholder="Escribe tu pregunta..." disabled={loading} />
+            placeholder={listening ? "Escuchando..." : "Escribe o dicta tu pregunta..."} disabled={loading} />
           <Button onClick={send} disabled={loading || !input.trim()} size="icon">
             <Send className="size-4" />
           </Button>
