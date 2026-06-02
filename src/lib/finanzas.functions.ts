@@ -436,6 +436,93 @@ export const getDashboard = createServerFn({ method: "GET" })
     };
   });
 
+// ============ CATEGORY BREAKDOWN ============
+
+export const getCategoryBreakdown = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((i) => z.object({
+    workspace_id: z.string().uuid(),
+    from: z.string(),
+    to: z.string(),
+    type: z.enum(["ingreso", "egreso"]),
+    currency: z.enum(["COP", "USD", "ALL"]).default("ALL"),
+  }).parse(i))
+  .handler(async ({ data, context }) => {
+    const { supabase } = context;
+    const [{ data: ws }, { data: cats, error: ec }, { data: txns, error: et }] = await Promise.all([
+      supabase.from("workspaces").select("usd_cop_rate").eq("id", data.workspace_id).single(),
+      supabase.from("categories").select("id,code,name,type").eq("workspace_id", data.workspace_id).order("code"),
+      supabase.from("transactions")
+        .select("id,date,concept,type,amount,currency,account,source,is_pending,category_id,client:clients(name)")
+        .eq("workspace_id", data.workspace_id)
+        .eq("type", data.type)
+        .gte("date", data.from).lte("date", data.to)
+        .order("date", { ascending: false }),
+    ]);
+    if (ec) throw new Error(ec.message);
+    if (et) throw new Error(et.message);
+
+    const rate = Number(ws?.usd_cop_rate ?? 4000);
+    const list = (txns ?? []).filter((t: any) => data.currency === "ALL" || t.currency === data.currency);
+
+    const byCat = new Map<string, { amount: number; count: number; txns: any[] }>();
+    let total = 0;
+    for (const t of list) {
+      const amt = Number(t.amount);
+      const inCop = t.currency === "USD" ? amt * rate : amt;
+      const key = t.category_id ?? "__none__";
+      const e = byCat.get(key) ?? { amount: 0, count: 0, txns: [] };
+      e.amount += inCop; e.count += 1; e.txns.push(t);
+      byCat.set(key, e);
+      total += inCop;
+    }
+
+    const catMap = new Map((cats ?? []).map((c: any) => [c.id, c]));
+    const breakdown = Array.from(byCat.entries()).map(([id, v]) => {
+      const cat: any = id === "__none__" ? { id: null, code: "—", name: "Sin categoría", type: data.type } : catMap.get(id);
+      return {
+        id, code: cat?.code ?? "—", name: cat?.name ?? "—",
+        amount: v.amount, count: v.count,
+        pct: total > 0 ? (v.amount / total) * 100 : 0,
+        txns: v.txns,
+      };
+    }).sort((a, b) => b.amount - a.amount);
+
+    return { total, breakdown };
+  });
+
+// ============ MONTH TOTALS (header) ============
+
+export const getMonthTotals = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((i) => z.object({
+    workspace_id: z.string().uuid(),
+    from: z.string(),
+    to: z.string(),
+    currency: z.enum(["COP", "USD", "ALL"]).default("ALL"),
+  }).parse(i))
+  .handler(async ({ data, context }) => {
+    const { supabase } = context;
+    const [{ data: ws }, { data: txns, error }] = await Promise.all([
+      supabase.from("workspaces").select("usd_cop_rate").eq("id", data.workspace_id).single(),
+      supabase.from("transactions")
+        .select("type,amount,currency,is_pending")
+        .eq("workspace_id", data.workspace_id)
+        .gte("date", data.from).lte("date", data.to),
+    ]);
+    if (error) throw new Error(error.message);
+    const rate = Number(ws?.usd_cop_rate ?? 4000);
+    let ingresos = 0, egresos = 0;
+    for (const t of (txns ?? [])) {
+      if (data.currency !== "ALL" && t.currency !== data.currency) continue;
+      if (t.is_pending) continue;
+      const inCop = t.currency === "USD" ? Number(t.amount) * rate : Number(t.amount);
+      if (t.type === "ingreso") ingresos += inCop;
+      else if (t.type === "egreso") egresos += inCop;
+    }
+    return { ingresos, egresos };
+  });
+
 // ============ TEAM ============
 
 export const listMembers = createServerFn({ method: "GET" })
