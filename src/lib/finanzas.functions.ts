@@ -11,7 +11,7 @@ export const getMyWorkspaces = createServerFn({ method: "GET" })
     const { supabase, userId } = context;
     const { data, error } = await supabase
       .from("workspace_members")
-      .select("role, workspace:workspaces(id, name, owner_id, usd_cop_rate, telegram_group_id)")
+      .select("role, workspace:workspaces(id, name, owner_id, usd_cop_rate, telegram_group_id, monthly_goal)")
       .eq("user_id", userId);
     if (error) throw new Error(error.message);
     return (data ?? []).map((m: any) => ({ ...m.workspace, role: m.role }));
@@ -24,6 +24,7 @@ export const updateWorkspace = createServerFn({ method: "POST" })
     name: z.string().min(1).max(80).optional(),
     usd_cop_rate: z.number().positive().optional(),
     telegram_group_id: z.string().max(40).nullable().optional(),
+    monthly_goal: z.number().min(0).optional(),
   }).parse(input))
   .handler(async ({ data, context }) => {
     const { supabase } = context;
@@ -444,11 +445,14 @@ export const getDashboard = createServerFn({ method: "GET" })
       const a = Number(f.amount);
       costosFijos += f.currency === "USD" ? a * rate : a;
     }
-    const margen = ingresos > 0 ? Math.max(utilidad / ingresos, 0.05) : 0.30;
-    const puntoEquilibrio = costosFijos / margen;
-    const pctAlcanzado = puntoEquilibrio > 0 ? (ingresos / puntoEquilibrio) * 100 : 0;
+    const meta = Number(ws?.monthly_goal ?? 0);
+    const puntoEquilibrio = costosFijos;
+    const pctEquilibrio = puntoEquilibrio > 0 ? (ingresos / puntoEquilibrio) * 100 : 0;
+    const pctMeta = meta > 0 ? (ingresos / meta) * 100 : 0;
     const status: "green" | "yellow" | "red" =
-      pctAlcanzado >= 100 ? "green" : pctAlcanzado >= 70 ? "yellow" : "red";
+      meta > 0 && ingresos >= meta ? "green"
+      : ingresos >= puntoEquilibrio ? "yellow"
+      : "red";
 
     // Pending clients (cartera)
     const pendingByClient = new Map<string, { name: string; amount: number }>();
@@ -466,7 +470,7 @@ export const getDashboard = createServerFn({ method: "GET" })
       usd: { stripe: stripeUSD, chase: chaseUSD, total: stripeUSD + chaseUSD },
       lastTransactions: list.slice(0, 10),
       fixedCosts: fixed ?? [],
-      breakEven: { costosFijos, margen, puntoEquilibrio, pctAlcanzado, status },
+      breakEven: { costosFijos, puntoEquilibrio, meta, pctEquilibrio, pctMeta, status },
       pendingClients: Array.from(pendingByClient.entries()).map(([id, v]) => ({ id, ...v })),
     };
   });
