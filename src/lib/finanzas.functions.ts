@@ -581,8 +581,8 @@ export const acceptInvitation = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((i) => z.object({ token: z.string().min(10) }).parse(i))
   .handler(async ({ data, context }) => {
-    const { supabase, userId } = context;
-    const { data: inv, error } = await supabase
+    const { userId } = context;
+    const { data: inv, error } = await supabaseAdmin
       .from("workspace_invitations")
       .select("*").eq("token", data.token).maybeSingle();
     if (error) throw new Error(error.message);
