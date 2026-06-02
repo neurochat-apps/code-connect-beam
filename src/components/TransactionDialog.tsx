@@ -217,6 +217,21 @@ export function TransactionDialog({
                 ))}
               </SelectContent>
             </Select>
+            <div className="flex gap-2 pt-1">
+              <Input
+                placeholder="Crear cliente nuevo…"
+                value={newClientName}
+                onChange={(e) => setNewClientName(e.target.value)}
+                className="h-8 text-sm"
+              />
+              <Button
+                type="button" variant="outline" size="sm"
+                onClick={handleCreateClient}
+                disabled={creatingClient || !newClientName.trim()}
+              >
+                <Plus className="size-3.5" /> Crear
+              </Button>
+            </div>
           </div>
 
           <div className="space-y-1.5">
