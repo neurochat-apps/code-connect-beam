@@ -1,44 +1,76 @@
-## Objetivo
-1. Conectar Stripe (pagos nativos de Lovable) para registrar ingresos reales desde junio.
-2. Importar el consolidado histórico del año desde un Google Sheet al módulo de transacciones.
 
-## Parte 1 — Stripe (pagos nativos)
+# Plan de cambios
 
-1. Ejecutar `recommend_payment_provider` para validar elegibilidad.
-2. Ejecutar `enable_stripe_payments` (sin cuenta propia ni API keys).
-3. Crear tabla `stripe_events` para registrar webhooks (idempotencia por `event_id`).
-4. Crear server route pública `/api/public/stripe/webhook` que:
-   - Verifica firma del webhook.
-   - En eventos `checkout.session.completed` / `invoice.paid` / `charge.succeeded`, inserta automáticamente una transacción tipo `ingreso` en el workspace correspondiente (categoría "Ventas / Servicios", cuenta `stripe`, fuente `stripe`).
-5. Agregar valor `stripe` al enum `txn_account` y `txn_source` vía migración.
-6. UI: indicador en el dashboard "Stripe conectado" + filtro por fuente.
+Ejecuto por fases con preview entre cada una.
 
-> Nota: la sincronización de ingresos pasados de Stripe (junio en adelante) la haremos con un botón "Importar desde Stripe" que recorre `charges.list` y crea transacciones — opcional, lo activamos cuando confirmes que ya hay cobros reales.
+---
 
-## Parte 2 — Importar Google Sheet histórico
+## FASE 1 — Selección masiva y borrado en /transacciones
 
-1. Conectar el connector **Google Sheets** vía `standard_connectors--connect`.
-2. Crear página `/settings/import` con:
-   - Input para pegar la URL del Google Sheet.
-   - Selector de hoja y rango (autodetectado).
-   - Vista previa de las primeras 20 filas.
-   - Mapeo de columnas → campos de `transactions` (fecha, concepto, tipo, monto, moneda, categoría, cliente, cuenta, notas). Se intenta auto-mapear por nombre de cabecera.
-   - Botón "Importar" que llama a un server fn que:
-     - Lee el rango vía gateway de Google Sheets.
-     - Normaliza fechas (DD/MM/YYYY, YYYY-MM-DD), montos (quita `$`, `.`, `,`), tipo (ingreso/egreso/income/expense).
-     - Resuelve categoría por nombre (crea si no existe) y cliente por nombre (crea si no existe).
-     - Inserta en lote con `source = 'import'` y un `import_batch_id` para poder revertir.
-3. Migración: agregar `import_batch_id uuid` a `transactions` + valor `import` al enum `txn_source`.
-4. Mostrar resumen post-import: X filas importadas, Y omitidas con motivos.
+En `src/routes/_authenticated/transacciones.tsx`:
+- Columna nueva con checkbox por fila + checkbox en el header (seleccionar todo lo visible / todo el filtro).
+- Barra de acciones flotante cuando hay selección: muestra cuántas y botón **Eliminar seleccionadas** (con confirmación AlertDialog).
+- Botón **Eliminar TODAS las transacciones del workspace** en /settings/import (zona peligrosa, doble confirmación escribiendo "ELIMINAR").
 
-## Orden de ejecución
-1. Migraciones (enums + columnas + tabla `stripe_events`).
-2. Habilitar Stripe + webhook.
-3. Conectar Google Sheets + pantalla de importación.
-4. Probar: envías el link del Sheet y hacemos el primer import.
+Server functions nuevas en `src/lib/finanzas.functions.ts`:
+- `deleteTransactions({ ids[] })` — borra por lote, valida workspace.
+- `deleteAllTransactions({ workspace_id, confirm })` — borra todo del workspace.
+
+---
+
+## FASE 2 — Fusionar Categorías dentro del Dashboard
+
+- Mover el contenido de `src/routes/_authenticated/categorias.tsx` como sección dentro de `dashboard.tsx`, debajo de las métricas y respetando el filtro de mes/rango existente.
+- Quitar item "Categorías" del sidebar (`AppShell.tsx`).
+- Eliminar la ruta `/categorias`.
+
+---
+
+## FASE 3 — Fase D: Importación Google Sheets robusta
+
+Mejorar `src/lib/condor-import.functions.ts`:
+- Mapeo exacto de columnas Cóndor: `FECHA | CONCEPTO | COD.VALOR | ENTRADAS | SALIDAS | SALDO`.
+- Usar columna **COD.VALOR** para mapear directamente a la categoría por `code` (00001–00013…).
+- Si el código no existe → acumular en un set de "categorías sugeridas".
+- Devolver `{ inserted, perSheet, suggestedCategories: [{code, sampleConcepts[]}] }`.
+
+En `/settings/import`:
+- Tras el preview de importación, mostrar las categorías sugeridas con campo nombre + tipo (ingreso/egreso) y botón **Aprobar y crear**.
+- Después de aprobar, re-ejecutar el insert para asociar las transacciones a las nuevas categorías (vía `import_batch_id`).
+- Mostrar resumen por mes/hoja con totales (ingresos, egresos, neto) para comparar contra el Sheet.
+
+---
+
+## FASE 4 — Fase F: Stripe sync con comisiones
+
+Mejorar `src/lib/stripe-sync.functions.ts` y el webhook `routes/api/public/payments/webhook.ts`:
+- Por cada `balance_transaction` de tipo `charge`/`payment`:
+  - Insertar **transacción de ingreso bruto** = `amount` (no `net`), categoría `INGRESOS POR VENTAS` (00001).
+  - Insertar **transacción de egreso de comisión** = `fee`, categoría `GASTOS OPERATIVOS` (00004) o nueva categoría sistema **COMISIONES STRIPE** (sugerencia: crearla como `00014`), enlazada vía `paired_transaction_id`.
+- Idempotencia por `bt_<id>` y `bt_<id>_fee`.
+- Dashboard: tarjeta nueva "Comisiones acumuladas (Stripe)" usando categoría de comisiones en el rango filtrado.
+
+Migración: agregar categoría sistema `00014 - COMISIONES STRIPE (egreso)` al seed y backfill para workspaces existentes.
+
+---
+
+## FASE 5 — Flujo de reset + resincronización (tu caso de uso)
+
+Con lo anterior listo, el flujo será:
+1. Settings → Importar → **Eliminar TODAS las transacciones** (doble confirmación).
+2. Settings → Importar → pegar URL del Sheet → previsualizar → aprobar categorías sugeridas → importar.
+3. Settings → Stripe → **Sincronizar desde 2026-06-01** (genera ingresos + comisiones).
+4. Dashboard muestra totales por mes y categoría para validar contra el Sheet.
+
+No agrego UI nueva para esto; reutiliza los botones de Fases 1, 3 y 4.
+
+---
 
 ## Detalles técnicos
-- Stripe webhook usa `supabaseAdmin` tras verificar firma con `STRIPE_WEBHOOK_SECRET`.
-- Para mapear Stripe → workspace, guardamos `stripe_account_id` por workspace al habilitar.
-- Google Sheets se llama vía `https://connector-gateway.lovable.dev/google_sheets/v4/...` con headers `LOVABLE_API_KEY` + `GOOGLE_SHEETS_API_KEY`.
-- Toda la importación corre en un `createServerFn` con `requireSupabaseAuth` (respeta RLS, sólo importa al workspace del usuario).
+
+- Todas las server fns usan `requireSupabaseAuth` y validan `workspace_id` con `is_workspace_member`.
+- Borrados respetan RLS (la policy `txn_all_member` ya cubre DELETE).
+- Categorías nuevas creadas con `is_system=false` salvo `00014 COMISIONES STRIPE` que va como `is_system=true` vía migración.
+- Mantener diseño: fondo crema `#F7F5F2`, verde `#2D7A4F`.
+
+¿Apruebo y arranco por FASE 1?
