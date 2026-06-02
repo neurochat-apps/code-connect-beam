@@ -37,6 +37,7 @@ function ImportPage() {
   const revertFn = useServerFn(revertImport);
   const stripeSyncFn = useServerFn(syncStripeAccount);
   const condorFn = useServerFn(importCondorSheet);
+  const wipeFn = useServerFn(deleteAllTransactions);
   const [stripeSince, setStripeSince] = useState("2026-06-01");
   const [stripeLoading, setStripeLoading] = useState(false);
   const [stripeResult, setStripeResult] = useState<{ inserted: number; skipped: number; scanned: number } | null>(null);
@@ -44,6 +45,19 @@ function ImportPage() {
   const [condorSince, setCondorSince] = useState("2026-06");
   const [condorLoading, setCondorLoading] = useState(false);
   const [condorResult, setCondorResult] = useState<{ inserted: number; perSheet: { sheet: string; rows: number; skipped: number }[] } | null>(null);
+  const [wipeConfirm, setWipeConfirm] = useState("");
+  const [wipeLoading, setWipeLoading] = useState(false);
+
+  async function doWipe() {
+    if (!wsId || wipeConfirm !== "ELIMINAR") return;
+    setWipeLoading(true);
+    try {
+      const r = await wipeFn({ data: { workspace_id: wsId, confirm: "ELIMINAR" } });
+      toast.success(`Eliminadas ${r.deleted} transacciones`);
+      setWipeConfirm("");
+    } catch (e: any) { toast.error(e.message); }
+    finally { setWipeLoading(false); }
+  }
 
   async function doStripeSync() {
     if (!wsId) return;
