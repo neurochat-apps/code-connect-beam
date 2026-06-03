@@ -125,8 +125,11 @@ export function AIChatDialog({
     const m = messages[idx];
     if (m.role !== "pending") return;
     setInput(`Ajusta: ${m.action.summary.replace(/\n/g, " · ")}`);
-    setMessages((prev) => prev.map((x, i) => i === idx && x.role === "pending" ? { ...x, resolved: "edited" } : x));
+    setMessages((prev) =>
+      prev.map((x, i): Msg => i === idx && x.role === "pending" ? { ...x, resolved: "edited" as const } : x)
+    );
   }
+
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
