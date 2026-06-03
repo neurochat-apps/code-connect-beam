@@ -1,63 +1,44 @@
-# Plan: Importación fiable del Google Sheet Cóndor
+## Chat IA como Centro de Control Total
 
-## Problema
-1. Los totales importados no cuadran con el sheet real.
-2. No hay forma de revisar mes por mes antes de insertar.
-3. Las transferencias **USD→COP** (código `00010 TRANSFERENCIA CUENTA LLC`) se cuentan dos veces: como egreso en la hoja USD y como ingreso en la hoja COP.
+Usaremos **Gemini vía Lovable AI Gateway** (`google/gemini-3-flash-preview`) con tool-calling. Si no convence, migramos a Claude después.
 
-## Solución
+### 1. Backend — Tool-calling con confirmación
 
-### 1. Parser por hoja (más estricto)
-- Detectar pareja de hojas por mes: `Flujo de caja {Mes} {Año}` (COP) y `Flujo de caja {Mes} {Año} Dolares` (USD).
-- Leer columnas B..G desde fila 8 (igual que hoy) **pero también** capturar la columna C (código `Cod`) para identificar el `00010`.
-- Marcar cada movimiento con `cop_code` (ej. "00010") en `notes` para auditoría.
+**`src/lib/ai-tools.server.ts`** (nuevo)
+- Define ~20 herramientas en formato OpenAI tools:
+  - **Consultas** (ejecución directa): `get_period_summary`, `get_client_status`, `get_balance`, `compare_months`, `get_category_spending`, `get_fixed_costs`, `get_pending_invoices`
+  - **Acciones** (requieren confirmación): `create_transaction`, `create_usd_cop_transfer`, `update_transaction`, `delete_transaction`, `create_client`, `update_client`, `mark_client_paid`, `create_category`, `create_fixed_cost`, `update_trm`, `update_monthly_goal`
+- Cada acción tiene un `executor` server-side que usa `requireSupabaseAuth` + RLS.
 
-### 2. Cruce de transferencias USD↔COP
-- Cualquier fila con código `00010` se marca como `transfer` y NO suma como ingreso/egreso operativo.
-- En la base se insertan igual (para trazabilidad), pero con `category_id` apuntando a la categoría sistema "TRANSFERENCIA USD→COP" (`00011` existente) y se emparejan vía `paired_transaction_id`:
-  - Match por mes + monto USD × `usd_cop_rate` del workspace, tolerancia ±5%.
-  - Si no hay match exacto, queda sin pareja pero etiquetada como transferencia (no infla ingresos del dashboard).
-- El dashboard ya puede filtrar `category.code = '00011'` para excluirlas de ingresos reales.
+**`src/lib/ai.functions.ts`** (refactor)
+- `chatFinanciero`: llama al gateway con `tools`. Si el modelo invoca una tool de consulta → ejecuta y devuelve `{ type: 'message', reply }`. Si invoca una acción → devuelve `{ type: 'confirm', action: { name, args }, summary }` sin ejecutar.
+- `executeAction`: recibe `{ name, args }` ya confirmado por el usuario, valida con Zod, ejecuta el executor correspondiente, devuelve resultado.
+- `getChatAlerts`: detecta clientes vencidos, progreso de meta mensual, categorías +20% vs mes anterior.
 
-### 3. Preview mensual antes de insertar (clave)
-Nuevo flujo en `/settings/import`:
+**System prompt** incluye al inicio: workspace, TRM actual, meta mensual, resumen del mes en curso (ingresos/egresos/utilidad), top 5 clientes con saldo, categorías activas, costos fijos, saldos Stripe/Chase calculados.
 
-```text
-[ Cargar sheet Cóndor ]
-        ↓
-Tabla resumen por mes (sin insertar nada):
-┌─────────┬──────┬──────────┬─────────┬─────────────┬──────────┐
-│ Mes     │ Mon. │ Ingresos │ Egresos │ Transfers   │ Sheet ≟  │
-├─────────┼──────┼──────────┼─────────┼─────────────┼──────────┤
-│ Ene 26  │ COP  │ 12.5M    │ 9.1M    │ +3.2M (in)  │ ✅ cuadra│
-│ Ene 26  │ USD  │ 4,200    │ 3,800   │ -800 (out)  │ ⚠ Δ $50 │
-│ Feb 26  │ COP  │ ...      │ ...     │ ...         │ ...      │
-└─────────┴──────┴──────────┴─────────┴─────────────┴──────────┘
+### 2. Frontend — `src/components/AIChatDialog.tsx`
 
-☑ Ene 26    ☑ Feb 26    ☐ Mar 26   ...
-[ Importar meses seleccionados ]
-```
+- Banner superior con `getChatAlerts` al abrir el chat.
+- Mensajes tipo `pending_action` renderizan tarjeta con resumen + botones **✅ Confirmar / ✏️ Editar / ❌ Cancelar**.
+  - ✅ → llama `executeAction`, muestra resultado.
+  - ✏️ → coloca el resumen editable en el input.
+  - ❌ → añade mensaje "Cancelado" y descarta la acción.
+- **Voz**: `continuous=false`, `interimResults=false` (one-shot). Al terminar, llama `send(transcript)` directamente — sin mostrar el texto intermedio en el input.
+- Markdown rendering ya existente se mantiene.
 
-- Cada fila compara el total calculado vs el **SALDO** final de la columna G del sheet (o suma de la columna ENTRADAS/SALIDAS), mostrando la diferencia.
-- Checkboxes para elegir qué meses importar.
-- Solo al confirmar se ejecuta el insert (idempotente por `import_batch_id` + hash fecha+concepto+monto para evitar duplicados si se reimporta).
+### 3. Sin cambios de DB
 
-### 4. Idempotencia y reimport
-- Antes de insertar un mes, eliminar transacciones previas del mismo mes con `source='import'` y misma moneda (o usar hash único). Así puedes reimportar sin duplicar.
+Todas las acciones operan sobre tablas existentes (`transactions`, `clients`, `categories`, `workspaces`, `fixed_costs`). RLS ya está activo.
 
-## Cambios técnicos
+### Modelo y limitaciones
 
-**Backend** (`src/lib/condor-import.functions.ts`):
-- Dividir en 2 server fns:
-  - `previewCondorSheet` → devuelve resumen mensual (sin insertar) con totales calculados, total del sheet, transferencias detectadas y diferencia.
-  - `importCondorMonths` → recibe lista de `{year, month, currency}` aprobada, hace el cruce de transferencias y inserta.
-- Helper `pairTransfers(rowsUSD, rowsCOP, rate)` que empareja por monto y fecha.
+- `gemini-3.1-flash-live-preview` (audio bidireccional WebSocket) **no está en el AI Gateway**. Usamos `google/gemini-3-flash-preview` que sí soporta tool-calling. La voz queda con Web Speech API (lo que ya hay).
+- Si quieres voz nativa Live API más adelante, es otro stack (WebSocket directo con API key separada).
 
-**Frontend** (`src/routes/_authenticated/settings/import.tsx`):
-- Reemplazar el botón único por: paso 1 "Analizar sheet" → tabla resumen con checkboxes → paso 2 "Importar seleccionados".
-- Mostrar diferencias en rojo/verde.
+### Archivos tocados
 
-**No requiere** cambios de esquema (ya existen `paired_transaction_id`, `import_batch_id`, categorías sistema).
-
-## Para el histórico del año
-- Con el preview mensual puedes subir mes por mes (Ene, Feb, Mar…) revisando que cada uno cuadre contra el sheet antes de confirmar — sin trabajo manual fila por fila.
+- nuevo: `src/lib/ai-tools.server.ts`
+- editado: `src/lib/ai.functions.ts`
+- editado: `src/lib/ai.server.ts`
+- editado: `src/components/AIChatDialog.tsx`
