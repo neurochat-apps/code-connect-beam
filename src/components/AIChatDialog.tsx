@@ -78,16 +78,15 @@ export function AIChatDialog({
     try {
       const res = await chatFn({ data: { workspace_id: workspaceId, message: msg, history } });
       if (res.type === "confirm") {
-        setMessages([...next, { role: "pending", action: res.action as PendingAction & { summary: string }, ...{ } } as any]);
-        setMessages((prev) => {
-          // Reemplazar el último (que añadimos arriba) con uno bien tipado
-          const arr = prev.slice();
-          arr[arr.length - 1] = { role: "pending", action: { name: res.action.name, args: res.action.args, summary: res.summary } };
-          return arr;
-        });
+        const pending: Msg = {
+          role: "pending",
+          action: { name: res.action.name, args: res.action.args, summary: res.summary },
+        };
+        setMessages([...next, pending]);
       } else {
         setMessages([...next, { role: "assistant", content: res.reply || "—" }]);
       }
+
     } catch (e: any) {
       toast.error(e.message);
     } finally { setLoading(false); }
