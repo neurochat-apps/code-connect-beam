@@ -99,8 +99,12 @@ export function AIChatDialog({
     setLoading(true);
     try {
       await execFn({ data: { workspace_id: workspaceId, name: m.action.name, args: m.action.args } });
-      setMessages((prev) => prev.map((x, i) => i === idx && x.role === "pending" ? { ...x, resolved: "done" } : x).concat([{ role: "assistant", content: "✅ Hecho." }]));
-      // refrescar alertas
+      setMessages((prev) => {
+        const updated: Msg[] = prev.map((x, i): Msg =>
+          i === idx && x.role === "pending" ? { ...x, resolved: "done" as const } : x
+        );
+        return [...updated, { role: "assistant", content: "✅ Hecho." }];
+      });
       alertsFn({ data: { workspace_id: workspaceId } }).then((r) => setAlerts(r.alerts ?? [])).catch(() => {});
     } catch (e: any) {
       toast.error(e.message);
@@ -108,8 +112,14 @@ export function AIChatDialog({
   }
 
   function cancelPending(idx: number) {
-    setMessages((prev) => prev.map((x, i) => i === idx && x.role === "pending" ? { ...x, resolved: "cancelled" } : x).concat([{ role: "assistant", content: "❌ Acción cancelada." }]));
+    setMessages((prev) => {
+      const updated: Msg[] = prev.map((x, i): Msg =>
+        i === idx && x.role === "pending" ? { ...x, resolved: "cancelled" as const } : x
+      );
+      return [...updated, { role: "assistant", content: "❌ Acción cancelada." }];
+    });
   }
+
 
   function editPending(idx: number) {
     const m = messages[idx];
