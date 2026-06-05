@@ -40,7 +40,7 @@ function AcceptInvitePage() {
             <p className="text-sm">Inicia sesión o crea una cuenta para aceptar esta invitación.</p>
             <div className="flex gap-2 justify-center">
               <Button asChild><Link to="/login" search={{ redirect: `/accept-invite/${token}` }}>Iniciar sesión</Link></Button>
-              <Button variant="outline" asChild><Link to="/signup">Crear cuenta</Link></Button>
+              <Button variant="outline" asChild><Link to="/signup" search={{ invite: token }}>Crear cuenta</Link></Button>
             </div>
           </>
         )}

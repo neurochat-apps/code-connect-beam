@@ -20,12 +20,12 @@ export const Route = createFileRoute("/api/public/payments/webhook")({
           return new Response(`Invalid signature: ${e.message}`, { status: 400 });
         }
 
-        // Idempotency
+        // Idempotencia
         const { data: existing } = await supabaseAdmin
           .from("stripe_events").select("id").eq("id", event.id).maybeSingle();
         if (existing) return Response.json({ ok: true, dup: true });
 
-        // Pick first workspace (single-tenant agency use case)
+        // Workspace por defecto (uso de agencia single-tenant)
         const { data: ws } = await supabaseAdmin
           .from("workspaces").select("id").order("created_at", { ascending: true }).limit(1).maybeSingle();
 
@@ -41,12 +41,43 @@ export const Route = createFileRoute("/api/public/payments/webhook")({
           const concept = obj.description ?? obj.statement_descriptor ?? `Stripe ${event.type}`;
           const date = new Date((event.created ?? Date.now() / 1000) * 1000).toISOString().slice(0, 10);
 
-          if (amount > 0) {
-            await supabaseAdmin.from("transactions").insert({
-              workspace_id: ws.id, date, concept: String(concept).slice(0, 500),
-              type: "ingreso", amount, currency, account: "stripe", source: "stripe",
-              notes: `Stripe event ${event.id}`,
-            });
+          // Categoría INGRESOS POR VENTAS (00001)
+          const { data: cat } = await supabaseAdmin
+            .from("categories").select("id")
+            .eq("workspace_id", ws.id).eq("code", "00001").maybeSingle();
+
+          // Intentar enlazar cliente por email del customer
+          let client_id: string | null = null;
+          const customerEmail: string | undefined =
+            obj.customer_email ?? obj.receipt_email ?? obj.billing_details?.email;
+          if (customerEmail) {
+            const { data: c } = await supabaseAdmin
+              .from("clients").select("id")
+              .eq("workspace_id", ws.id)
+              .ilike("contact", `%${customerEmail}%`)
+              .maybeSingle();
+            if (c) client_id = c.id;
+          }
+
+          // Dedupe por charge/payment_intent/invoice id (por si llega también via sync manual)
+          const externalId: string = obj.id ?? "";
+          if (amount > 0 && externalId) {
+            const { data: dup } = await supabaseAdmin
+              .from("transactions").select("id")
+              .eq("workspace_id", ws.id)
+              .eq("source", "stripe")
+              .ilike("notes", `%${externalId}%`)
+              .maybeSingle();
+
+            if (!dup) {
+              await supabaseAdmin.from("transactions").insert({
+                workspace_id: ws.id, date, concept: String(concept).slice(0, 500),
+                type: "ingreso", amount, currency, account: "stripe", source: "stripe",
+                category_id: cat?.id ?? null,
+                client_id,
+                notes: `Stripe ${externalId} · evt ${event.id}`,
+              });
+            }
           }
         }
 
