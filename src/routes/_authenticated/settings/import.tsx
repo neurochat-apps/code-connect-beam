@@ -207,10 +207,10 @@ function ImportPage() {
         </div>
 
         <Card>
-          <CardHeader><CardTitle>Sincronizar Stripe</CardTitle></CardHeader>
+          <CardHeader><CardTitle>Sincronizar Stripe (respaldo)</CardTitle></CardHeader>
           <CardContent className="space-y-3">
             <p className="text-xs text-muted-foreground">
-              Importa cada cobro, comisión y reembolso de tu cuenta Stripe. Idempotente.
+              Los pagos de Stripe se registran <b>automáticamente en tiempo real</b> vía webhook, con categoría <b>Ingresos por Ventas</b>. Usa este botón solo si sospechas que falta algún movimiento histórico. Es idempotente — no duplica.
             </p>
             <div className="flex gap-2 items-end">
               <div className="space-y-1">

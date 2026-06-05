@@ -33,6 +33,11 @@ export const syncStripeAccount = createServerFn({ method: "POST" })
     const { supabase } = context;
     const sinceTs = Math.floor(new Date(data.since + "T00:00:00Z").getTime() / 1000);
 
+    // Categoría por defecto: INGRESOS POR VENTAS (00001)
+    const { data: cat } = await supabase
+      .from("categories").select("id")
+      .eq("workspace_id", data.workspace_id).eq("code", "00001").maybeSingle();
+
     let starting_after: string | undefined;
     let inserted = 0;
     let skipped = 0;
@@ -51,14 +56,19 @@ export const syncStripeAccount = createServerFn({ method: "POST" })
 
       for (const bt of items) {
         scanned++;
-        // skip payouts (just money movement out, not income/expense)
         if (bt.type === "payout") { skipped++; continue; }
 
-        // idempotency via stripe_events table
-        const eventId = `bt_${bt.id}`;
-        const { data: exists } = await supabase
-          .from("stripe_events").select("id").eq("id", eventId).maybeSingle();
-        if (exists) { skipped++; continue; }
+        // ID externo (source = ch_xxx/pi_xxx/in_xxx) para dedupe contra webhook
+        const externalId: string = bt.source ?? bt.id;
+
+        // Dedupe: ¿ya existe esta transacción por webhook o sync previa?
+        const { data: existingTxn } = await supabase
+          .from("transactions").select("id")
+          .eq("workspace_id", data.workspace_id)
+          .eq("source", "stripe")
+          .ilike("notes", `%${externalId}%`)
+          .maybeSingle();
+        if (existingTxn) { skipped++; continue; }
 
         const amountCents = Number(bt.net ?? bt.amount ?? 0);
         if (amountCents === 0) { skipped++; continue; }
@@ -73,12 +83,14 @@ export const syncStripeAccount = createServerFn({ method: "POST" })
           workspace_id: data.workspace_id,
           date, concept, type, amount, currency,
           account: "stripe", source: "stripe",
-          notes: `Stripe ${bt.type} · ${bt.id}`,
+          category_id: type === "ingreso" ? cat?.id ?? null : null,
+          notes: `Stripe ${externalId} · bt ${bt.id}`,
         });
         if (txnErr) { skipped++; continue; }
 
+        // Marca evento sintético para retrocompat
         await supabase.from("stripe_events").insert({
-          id: eventId, type: `sync.${bt.type}`,
+          id: `bt_${bt.id}`, type: `sync.${bt.type}`,
           workspace_id: data.workspace_id, payload: bt as any,
         });
         inserted++;
