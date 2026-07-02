@@ -10,15 +10,193 @@ function stripeKey() {
   return k;
 }
 
-async function stripeGet(path: string, params: Record<string, string | number>) {
-  const qs = new URLSearchParams(
-    Object.entries(params).map(([k, v]) => [k, String(v)]),
-  ).toString();
+async function stripeGet(path: string, params: Record<string, string | number | string[]>) {
+  const qs = new URLSearchParams();
+  for (const [k, v] of Object.entries(params)) {
+    if (Array.isArray(v)) v.forEach((vv) => qs.append(k, vv));
+    else qs.append(k, String(v));
+  }
   const res = await fetch(`${STRIPE_API}${path}?${qs}`, {
     headers: { Authorization: `Bearer ${stripeKey()}` },
   });
   if (!res.ok) throw new Error(`Stripe ${path}: ${res.status} ${await res.text()}`);
   return res.json();
+}
+
+type Counters = {
+  gross: number; fee: number; refund: number; adjustment: number;
+  payouts: number; scanned: number; skipped: number; inserted: number;
+  grossUsd: number; feeUsd: number; payoutUsd: number;
+};
+
+async function processStripeSince(
+  supabase: any,
+  workspaceId: string,
+  since: string,
+): Promise<Counters> {
+  const sinceTs = Math.floor(new Date(since + "T00:00:00Z").getTime() / 1000);
+
+  // Load category ids
+  const { data: cats } = await supabase
+    .from("categories").select("id,code")
+    .eq("workspace_id", workspaceId)
+    .in("code", ["00001", "00011", "00014"]);
+  const catBy = new Map<string, string>((cats ?? []).map((c: any) => [c.code, c.id]));
+  const catVentas = catBy.get("00001") ?? null;
+  const catTransfer = catBy.get("00011") ?? null;
+  const catFees = catBy.get("00014") ?? null;
+
+  // TRM
+  const { data: ws } = await supabase
+    .from("workspaces").select("usd_cop_rate").eq("id", workspaceId).maybeSingle();
+  const trm = Number(ws?.usd_cop_rate ?? 4000);
+
+  const c: Counters = {
+    gross: 0, fee: 0, refund: 0, adjustment: 0, payouts: 0,
+    scanned: 0, skipped: 0, inserted: 0,
+    grossUsd: 0, feeUsd: 0, payoutUsd: 0,
+  };
+
+  async function insertIfNew(kind: string, externalId: string, row: any) {
+    const marker = `${externalId}:${kind}`;
+    const { data: dup } = await supabase
+      .from("transactions").select("id")
+      .eq("workspace_id", workspaceId)
+      .eq("source", "stripe")
+      .ilike("notes", `%${marker}%`)
+      .maybeSingle();
+    if (dup) { c.skipped++; return null; }
+    const notes = `Stripe ${marker}${row.notes ? ` · ${row.notes}` : ""}`;
+    const { data: inserted, error } = await supabase
+      .from("transactions")
+      .insert({ ...row, workspace_id: workspaceId, source: "stripe", account: "stripe", notes })
+      .select("id").maybeSingle();
+    if (error) { c.skipped++; return null; }
+    c.inserted++;
+    return inserted?.id ?? null;
+  }
+
+  let starting_after: string | undefined;
+  while (true) {
+    const params: Record<string, string | number | string[]> = {
+      limit: 100, "created[gte]": sinceTs,
+      "expand[]": ["data.source"],
+    };
+    if (starting_after) params.starting_after = starting_after;
+
+    const page = await stripeGet("/balance_transactions", params);
+    const items: any[] = page.data ?? [];
+    if (items.length === 0) break;
+
+    for (const bt of items) {
+      c.scanned++;
+      const currency = String(bt.currency ?? "usd").toUpperCase() === "USD" ? "USD" : "COP";
+      const date = new Date(bt.created * 1000).toISOString().slice(0, 10);
+      const type: string = bt.type;
+      const source = bt.source;
+      const sourceId: string = typeof source === "string" ? source : source?.id ?? bt.id;
+
+      if (type === "charge") {
+        // amount: cents (positive); fee: cents
+        const gross = Math.abs(Number(bt.amount ?? 0)) / 100;
+        const feeAmt = Math.abs(Number(bt.fee ?? 0)) / 100;
+        const concept = (source?.description ?? source?.statement_descriptor ?? "Stripe payment")
+          .toString().slice(0, 500);
+
+        if (gross > 0) {
+          const id = await insertIfNew("gross", sourceId, {
+            date, concept, type: "ingreso", amount: gross, currency,
+            category_id: catVentas,
+          });
+          if (id) { c.gross++; c.grossUsd += gross; }
+        }
+        if (feeAmt > 0) {
+          const id = await insertIfNew("fee", sourceId, {
+            date, concept: `Comisión Stripe · ${concept}`.slice(0, 500),
+            type: "egreso", amount: feeAmt, currency,
+            category_id: catFees,
+          });
+          if (id) { c.fee++; c.feeUsd += feeAmt; }
+        }
+        continue;
+      }
+
+      if (type === "refund" || type === "payment_refund") {
+        const amt = Math.abs(Number(bt.amount ?? 0)) / 100;
+        const concept = (source?.description ?? "Reembolso Stripe").toString().slice(0, 500);
+        if (amt > 0) {
+          const id = await insertIfNew("refund", sourceId, {
+            date, concept, type: "egreso", amount: amt, currency,
+            category_id: catVentas,
+          });
+          if (id) c.refund++;
+        }
+        continue;
+      }
+
+      if (type === "stripe_fee" || type === "adjustment" || type === "application_fee") {
+        const amt = Math.abs(Number(bt.amount ?? 0)) / 100;
+        const concept = (bt.description ?? `Cargo Stripe (${type})`).toString().slice(0, 500);
+        if (amt > 0) {
+          const id = await insertIfNew("adj", bt.id, {
+            date, concept, type: "egreso", amount: amt, currency,
+            category_id: catFees,
+          });
+          if (id) c.adjustment++;
+        }
+        continue;
+      }
+
+      if (type === "payout") {
+        // Transferencia: USD sale de Stripe, COP entra a Bancolombia
+        const usdAmt = Math.abs(Number(bt.amount ?? 0)) / 100;
+        if (usdAmt <= 0) { c.skipped++; continue; }
+        const copAmt = Math.round(usdAmt * trm);
+        const concept = `Transferencia Stripe → Bancolombia`;
+
+        // Dedupe by out-side marker
+        const outMarker = `${sourceId}:transfer_out`;
+        const { data: existing } = await supabase
+          .from("transactions").select("id")
+          .eq("workspace_id", workspaceId).eq("source", "stripe")
+          .ilike("notes", `%${outMarker}%`).maybeSingle();
+        if (existing) { c.skipped++; continue; }
+
+        const notesBase = `TRM ${trm}`;
+        const { data: usdRow } = await supabase.from("transactions").insert({
+          workspace_id: workspaceId, source: "stripe", account: "stripe",
+          date, concept, type: "neutro", amount: usdAmt, currency: "USD",
+          category_id: catTransfer,
+          notes: `Stripe ${outMarker} · ${notesBase}`,
+        }).select("id").maybeSingle();
+
+        const { data: copRow } = await supabase.from("transactions").insert({
+          workspace_id: workspaceId, source: "stripe", account: "bancolombia",
+          date, concept, type: "neutro", amount: copAmt, currency: "COP",
+          category_id: catTransfer,
+          notes: `Stripe ${sourceId}:transfer_in · ${notesBase}`,
+          paired_transaction_id: usdRow?.id ?? null,
+        }).select("id").maybeSingle();
+
+        if (usdRow?.id && copRow?.id) {
+          await supabase.from("transactions")
+            .update({ paired_transaction_id: copRow.id })
+            .eq("id", usdRow.id);
+          c.inserted += 2;
+          c.payouts++;
+          c.payoutUsd += usdAmt;
+        }
+        continue;
+      }
+
+      c.skipped++;
+    }
+
+    if (!page.has_more) break;
+    starting_after = items[items.length - 1].id;
+  }
+
+  return c;
 }
 
 export const syncStripeAccount = createServerFn({ method: "POST" })
@@ -30,75 +208,29 @@ export const syncStripeAccount = createServerFn({ method: "POST" })
     }).parse(input),
   )
   .handler(async ({ data, context }) => {
+    const c = await processStripeSince(context.supabase, data.workspace_id, data.since);
+    return c;
+  });
+
+export const resyncStripeSince = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) =>
+    z.object({
+      workspace_id: z.string().uuid(),
+      since: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).default("2026-06-01"),
+    }).parse(input),
+  )
+  .handler(async ({ data, context }) => {
     const { supabase } = context;
-    const sinceTs = Math.floor(new Date(data.since + "T00:00:00Z").getTime() / 1000);
-
-    // Categoría por defecto: INGRESOS POR VENTAS (00001)
-    const { data: cat } = await supabase
-      .from("categories").select("id")
-      .eq("workspace_id", data.workspace_id).eq("code", "00001").maybeSingle();
-
-    let starting_after: string | undefined;
-    let inserted = 0;
-    let skipped = 0;
-    let scanned = 0;
-
-    while (true) {
-      const params: Record<string, string | number> = {
-        limit: 100,
-        "created[gte]": sinceTs,
-      };
-      if (starting_after) params.starting_after = starting_after;
-
-      const page = await stripeGet("/balance_transactions", params);
-      const items: any[] = page.data ?? [];
-      if (items.length === 0) break;
-
-      for (const bt of items) {
-        scanned++;
-        if (bt.type === "payout") { skipped++; continue; }
-
-        // ID externo (source = ch_xxx/pi_xxx/in_xxx) para dedupe contra webhook
-        const externalId: string = bt.source ?? bt.id;
-
-        // Dedupe: ¿ya existe esta transacción por webhook o sync previa?
-        const { data: existingTxn } = await supabase
-          .from("transactions").select("id")
-          .eq("workspace_id", data.workspace_id)
-          .eq("source", "stripe")
-          .ilike("notes", `%${externalId}%`)
-          .maybeSingle();
-        if (existingTxn) { skipped++; continue; }
-
-        const amountCents = Number(bt.net ?? bt.amount ?? 0);
-        if (amountCents === 0) { skipped++; continue; }
-
-        const amount = Math.abs(amountCents) / 100;
-        const type = amountCents > 0 ? "ingreso" : "egreso";
-        const currency = String(bt.currency ?? "usd").toUpperCase() === "USD" ? "USD" : "COP";
-        const date = new Date(bt.created * 1000).toISOString().slice(0, 10);
-        const concept = (bt.description ?? `Stripe ${bt.type}`).toString().slice(0, 500);
-
-        const { error: txnErr } = await supabase.from("transactions").insert({
-          workspace_id: data.workspace_id,
-          date, concept, type, amount, currency,
-          account: "stripe", source: "stripe",
-          category_id: type === "ingreso" ? cat?.id ?? null : null,
-          notes: `Stripe ${externalId} · bt ${bt.id}`,
-        });
-        if (txnErr) { skipped++; continue; }
-
-        // Marca evento sintético para retrocompat
-        await supabase.from("stripe_events").insert({
-          id: `bt_${bt.id}`, type: `sync.${bt.type}`,
-          workspace_id: data.workspace_id, payload: bt as any,
-        });
-        inserted++;
-      }
-
-      if (!page.has_more) break;
-      starting_after = items[items.length - 1].id;
-    }
-
-    return { inserted, skipped, scanned, since: data.since };
+    // Wipe existing Stripe rows from `since` onwards
+    const { data: deletedRows } = await supabase
+      .from("transactions")
+      .delete()
+      .eq("workspace_id", data.workspace_id)
+      .eq("source", "stripe")
+      .gte("date", data.since)
+      .select("id");
+    const deleted = deletedRows?.length ?? 0;
+    const c = await processStripeSince(supabase, data.workspace_id, data.since);
+    return { ...c, deleted };
   });
