@@ -121,9 +121,12 @@ function TxnPage() {
                       </div>
                     </div>
                     <div className={cn("num text-sm font-medium",
-                      t.type === "ingreso" ? "text-primary" : "text-foreground")}>
-                      {t.type === "ingreso" ? "+" : "−"}{t.currency === "USD" ? fmtUSD(t.amount) : fmtCOP(t.amount)}
+                      t.type === "ingreso" ? "text-primary"
+                        : t.type === "neutro" ? "text-muted-foreground"
+                        : "text-foreground")}>
+                      {t.type === "ingreso" ? "+" : t.type === "neutro" ? "⇄ " : "−"}{t.currency === "USD" ? fmtUSD(t.amount) : fmtCOP(t.amount)}
                     </div>
+
                     <Button variant="ghost" size="icon" onClick={() => { if (confirm("¿Eliminar?")) del.mutate(t.id); }}>
                       <Trash2 className="size-4" />
                     </Button>
