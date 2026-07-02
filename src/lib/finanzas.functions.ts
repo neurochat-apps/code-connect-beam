@@ -428,15 +428,21 @@ export const getDashboard = createServerFn({ method: "GET" })
       const inCop = t.currency === "USD" ? amt * rate : amt;
       if (t.is_pending && t.type === "ingreso") cartera += inCop;
       else if (t.type === "ingreso") ingresos += inCop;
-      else gastos += inCop;
+      else if (t.type === "egreso") gastos += inCop;
+      // neutro: transferencias entre cuentas, no cuentan como ingreso ni gasto
 
       if (t.currency === "USD" && !t.is_pending) {
-        if (t.account === "stripe" && t.type === "ingreso") stripeUSD += amt;
-        if (t.account === "chase" && t.type === "ingreso") chaseUSD += amt;
-        if (t.account === "stripe" && t.type === "egreso") stripeUSD -= amt;
-        if (t.account === "chase" && t.type === "egreso") chaseUSD -= amt;
+        if (t.account === "stripe") {
+          if (t.type === "ingreso") stripeUSD += amt;
+          else stripeUSD -= amt; // egreso o neutro (payout) reducen el saldo USD
+        }
+        if (t.account === "chase") {
+          if (t.type === "ingreso") chaseUSD += amt;
+          else chaseUSD -= amt;
+        }
       }
     }
+
     const utilidad = ingresos - gastos;
 
     // Fixed costs in COP
