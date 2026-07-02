@@ -4,7 +4,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { previewSheet, importSheet, revertImport } from "@/lib/import.functions";
-import { syncStripeAccount } from "@/lib/stripe-sync.functions";
+import { syncStripeAccount, resyncStripeSince } from "@/lib/stripe-sync.functions";
 import { previewCondorSheet, importCondorMonths } from "@/lib/condor-import.functions";
 import { deleteAllTransactions } from "@/lib/finanzas.functions";
 import { AppShell } from "@/components/AppShell";
@@ -57,13 +57,14 @@ function ImportPage() {
   const importFn = useServerFn(importSheet);
   const revertFn = useServerFn(revertImport);
   const stripeSyncFn = useServerFn(syncStripeAccount);
+  const stripeResyncFn = useServerFn(resyncStripeSince);
   const condorPreviewFn = useServerFn(previewCondorSheet);
   const condorImportFn = useServerFn(importCondorMonths);
   const wipeFn = useServerFn(deleteAllTransactions);
 
   const [stripeSince, setStripeSince] = useState("2026-06-01");
   const [stripeLoading, setStripeLoading] = useState(false);
-  const [stripeResult, setStripeResult] = useState<{ inserted: number; skipped: number; scanned: number } | null>(null);
+  const [stripeResult, setStripeResult] = useState<any | null>(null);
 
   const [condorUrl, setCondorUrl] = useState("https://docs.google.com/spreadsheets/d/1VAOPJvrYMDZthudxHfzEbtcvcQpdNhDLb2W71no54iY/edit");
   const [condorSince, setCondorSince] = useState("2026-01");
@@ -102,7 +103,19 @@ function ImportPage() {
     try {
       const r = await stripeSyncFn({ data: { workspace_id: wsId, since: stripeSince } });
       setStripeResult(r);
-      toast.success(`Stripe: ${r.inserted} nuevas (${r.scanned} revisadas)`);
+      toast.success(`Stripe: ${r.inserted} filas nuevas`);
+    } catch (e: any) { toast.error(e.message); }
+    finally { setStripeLoading(false); }
+  }
+
+  async function doStripeResync() {
+    if (!wsId) return;
+    if (!confirm(`Se eliminarán TODAS las transacciones de Stripe desde ${stripeSince} y se reimportarán desde cero. ¿Continuar?`)) return;
+    setStripeLoading(true); setStripeResult(null);
+    try {
+      const r = await stripeResyncFn({ data: { workspace_id: wsId, since: stripeSince } });
+      setStripeResult(r);
+      toast.success(`Stripe reimportado: ${r.inserted} filas nuevas (${r.deleted} eliminadas previas)`);
     } catch (e: any) { toast.error(e.message); }
     finally { setStripeLoading(false); }
   }
@@ -207,24 +220,35 @@ function ImportPage() {
         </div>
 
         <Card>
-          <CardHeader><CardTitle>Sincronizar Stripe (respaldo)</CardTitle></CardHeader>
+          <CardHeader><CardTitle>Stripe — historial y tiempo real</CardTitle></CardHeader>
           <CardContent className="space-y-3">
             <p className="text-xs text-muted-foreground">
-              Los pagos de Stripe se registran <b>automáticamente en tiempo real</b> vía webhook, con categoría <b>Ingresos por Ventas</b>. Usa este botón solo si sospechas que falta algún movimiento histórico. Es idempotente — no duplica.
+              Cada pago se registra como <b>2 filas</b>: ingreso bruto (Ingresos por Ventas) + comisión Stripe (Comisiones Stripe).
+              Los payouts se registran como transferencia USD→COP emparejada usando la TRM del workspace.
+              Los nuevos pagos entran <b>en tiempo real</b> vía webhook — este botón sirve como respaldo o para cargar historial.
             </p>
-            <div className="flex gap-2 items-end">
+            <div className="flex gap-2 items-end flex-wrap">
               <div className="space-y-1">
                 <Label className="text-xs">Desde</Label>
                 <Input type="date" value={stripeSince} onChange={(e) => setStripeSince(e.target.value)} className="w-44" />
               </div>
               <Button onClick={doStripeSync} disabled={stripeLoading || !wsId}>
-                {stripeLoading ? "Sincronizando..." : "Sincronizar Stripe"}
+                {stripeLoading ? "Sincronizando..." : "Sincronizar (agrega faltantes)"}
+              </Button>
+              <Button variant="destructive" onClick={doStripeResync} disabled={stripeLoading || !wsId}>
+                Reimportar limpio (borra y vuelve a cargar)
               </Button>
             </div>
             {stripeResult && (
-              <p className="text-sm">
-                <b>{stripeResult.inserted}</b> nuevas · {stripeResult.skipped} omitidas · {stripeResult.scanned} revisadas
-              </p>
+              <div className="text-sm space-y-1 rounded border p-3">
+                {typeof stripeResult.deleted === "number" && (
+                  <p><b>{stripeResult.deleted}</b> filas previas eliminadas</p>
+                )}
+                <p><b>{stripeResult.inserted}</b> filas insertadas · {stripeResult.skipped} omitidas · {stripeResult.scanned} eventos revisados</p>
+                <p className="text-xs text-muted-foreground">
+                  {stripeResult.gross ?? 0} ventas (${(stripeResult.grossUsd ?? 0).toFixed(2)} USD) · {stripeResult.fee ?? 0} comisiones (${(stripeResult.feeUsd ?? 0).toFixed(2)} USD) · {stripeResult.refund ?? 0} reembolsos · {stripeResult.adjustment ?? 0} cargos · {stripeResult.payouts ?? 0} transferencias (${(stripeResult.payoutUsd ?? 0).toFixed(2)} USD)
+                </p>
+              </div>
             )}
           </CardContent>
         </Card>
