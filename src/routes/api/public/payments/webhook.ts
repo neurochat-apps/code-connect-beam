@@ -2,6 +2,141 @@ import { createFileRoute } from "@tanstack/react-router";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { createStripeClient, getWebhookSecret, type StripeEnv } from "@/lib/stripe.server";
 
+async function findCat(wsId: string, code: string): Promise<string | null> {
+  const { data } = await supabaseAdmin
+    .from("categories").select("id")
+    .eq("workspace_id", wsId).eq("code", code).maybeSingle();
+  return data?.id ?? null;
+}
+
+async function alreadyExists(wsId: string, marker: string): Promise<boolean> {
+  const { data } = await supabaseAdmin
+    .from("transactions").select("id")
+    .eq("workspace_id", wsId).eq("source", "stripe")
+    .ilike("notes", `%${marker}%`).maybeSingle();
+  return !!data;
+}
+
+async function insertRow(wsId: string, marker: string, row: any, extraNote?: string) {
+  if (await alreadyExists(wsId, marker)) return null;
+  const notes = `Stripe ${marker}${extraNote ? ` · ${extraNote}` : ""}`;
+  const { data } = await supabaseAdmin.from("transactions")
+    .insert({ ...row, workspace_id: wsId, source: "stripe", account: row.account ?? "stripe", notes })
+    .select("id").maybeSingle();
+  return data?.id ?? null;
+}
+
+async function handleChargeSucceeded(wsId: string, charge: any, stripe: any, evtId: string) {
+  const catVentas = await findCat(wsId, "00001");
+  const catFees = await findCat(wsId, "00014");
+  const gross = Number(charge.amount ?? 0) / 100;
+  const currency = String(charge.currency ?? "usd").toUpperCase() === "USD" ? "USD" : "COP";
+  const date = new Date((charge.created ?? Date.now() / 1000) * 1000).toISOString().slice(0, 10);
+  const concept = (charge.description ?? charge.statement_descriptor ?? "Stripe payment").toString().slice(0, 500);
+
+  // Try to resolve client by email
+  let client_id: string | null = null;
+  const email: string | undefined = charge.receipt_email ?? charge.billing_details?.email;
+  if (email) {
+    const { data: c } = await supabaseAdmin
+      .from("clients").select("id")
+      .eq("workspace_id", wsId).ilike("contact", `%${email}%`).maybeSingle();
+    if (c) client_id = c.id;
+  }
+
+  if (gross > 0) {
+    await insertRow(wsId, `${charge.id}:gross`, {
+      date, concept, type: "ingreso", amount: gross, currency,
+      category_id: catVentas, client_id,
+    }, `evt ${evtId}`);
+  }
+
+  // Fetch balance_transaction to get exact fee
+  let feeAmt = 0;
+  try {
+    if (charge.balance_transaction && typeof charge.balance_transaction === "string") {
+      const bt = await stripe.balanceTransactions.retrieve(charge.balance_transaction);
+      feeAmt = Number(bt.fee ?? 0) / 100;
+    } else if (charge.balance_transaction && typeof charge.balance_transaction === "object") {
+      feeAmt = Number(charge.balance_transaction.fee ?? 0) / 100;
+    }
+  } catch (e) {
+    console.error("Failed to fetch balance_transaction:", e);
+  }
+
+  if (feeAmt > 0) {
+    await insertRow(wsId, `${charge.id}:fee`, {
+      date, concept: `Comisión Stripe · ${concept}`.slice(0, 500),
+      type: "egreso", amount: feeAmt, currency,
+      category_id: catFees,
+    }, `evt ${evtId}`);
+  }
+}
+
+async function handleChargeRefunded(wsId: string, charge: any, evtId: string) {
+  const catVentas = await findCat(wsId, "00001");
+  const refunded = Number(charge.amount_refunded ?? 0) / 100;
+  const currency = String(charge.currency ?? "usd").toUpperCase() === "USD" ? "USD" : "COP";
+  const date = new Date(Date.now()).toISOString().slice(0, 10);
+  if (refunded > 0) {
+    await insertRow(wsId, `${charge.id}:refund`, {
+      date, concept: `Reembolso · ${charge.description ?? charge.id}`.slice(0, 500),
+      type: "egreso", amount: refunded, currency,
+      category_id: catVentas,
+    }, `evt ${evtId}`);
+  }
+}
+
+async function handleDispute(wsId: string, dispute: any, evtId: string) {
+  const catFees = await findCat(wsId, "00014");
+  const amt = Number(dispute.amount ?? 0) / 100;
+  const currency = String(dispute.currency ?? "usd").toUpperCase() === "USD" ? "USD" : "COP";
+  const date = new Date(Date.now()).toISOString().slice(0, 10);
+  if (amt > 0) {
+    await insertRow(wsId, `${dispute.id}:dispute`, {
+      date, concept: `Disputa Stripe ${dispute.reason ?? ""}`.slice(0, 500),
+      type: "egreso", amount: amt, currency,
+      category_id: catFees,
+    }, `evt ${evtId}`);
+  }
+}
+
+async function handlePayoutPaid(wsId: string, payout: any, evtId: string) {
+  const catTransfer = await findCat(wsId, "00011");
+  const { data: ws } = await supabaseAdmin
+    .from("workspaces").select("usd_cop_rate").eq("id", wsId).maybeSingle();
+  const trm = Number(ws?.usd_cop_rate ?? 4000);
+  const usdAmt = Number(payout.amount ?? 0) / 100;
+  if (usdAmt <= 0) return;
+  const copAmt = Math.round(usdAmt * trm);
+  const date = new Date((payout.arrival_date ?? payout.created ?? Date.now() / 1000) * 1000)
+    .toISOString().slice(0, 10);
+  const concept = "Transferencia Stripe → Bancolombia";
+
+  if (await alreadyExists(wsId, `${payout.id}:transfer_out`)) return;
+
+  const { data: usdRow } = await supabaseAdmin.from("transactions").insert({
+    workspace_id: wsId, source: "stripe", account: "stripe",
+    date, concept, type: "neutro", amount: usdAmt, currency: "USD",
+    category_id: catTransfer,
+    notes: `Stripe ${payout.id}:transfer_out · TRM ${trm} · evt ${evtId}`,
+  }).select("id").maybeSingle();
+
+  const { data: copRow } = await supabaseAdmin.from("transactions").insert({
+    workspace_id: wsId, source: "stripe", account: "bancolombia",
+    date, concept, type: "neutro", amount: copAmt, currency: "COP",
+    category_id: catTransfer,
+    notes: `Stripe ${payout.id}:transfer_in · TRM ${trm} · evt ${evtId}`,
+    paired_transaction_id: usdRow?.id ?? null,
+  }).select("id").maybeSingle();
+
+  if (usdRow?.id && copRow?.id) {
+    await supabaseAdmin.from("transactions")
+      .update({ paired_transaction_id: copRow.id })
+      .eq("id", usdRow.id);
+  }
+}
+
 export const Route = createFileRoute("/api/public/payments/webhook")({
   server: {
     handlers: {
@@ -12,20 +147,20 @@ export const Route = createFileRoute("/api/public/payments/webhook")({
         if (!signature) return new Response("Missing signature", { status: 400 });
 
         const rawBody = await request.text();
-        let event;
+        let event: any;
+        let stripe: any;
         try {
-          const stripe = createStripeClient(env);
+          stripe = createStripeClient(env);
           event = stripe.webhooks.constructEvent(rawBody, signature, getWebhookSecret(env));
         } catch (e: any) {
           return new Response(`Invalid signature: ${e.message}`, { status: 400 });
         }
 
-        // Idempotencia
+        // Idempotencia por event.id
         const { data: existing } = await supabaseAdmin
           .from("stripe_events").select("id").eq("id", event.id).maybeSingle();
         if (existing) return Response.json({ ok: true, dup: true });
 
-        // Workspace por defecto (uso de agencia single-tenant)
         const { data: ws } = await supabaseAdmin
           .from("workspaces").select("id").order("created_at", { ascending: true }).limit(1).maybeSingle();
 
@@ -33,52 +168,30 @@ export const Route = createFileRoute("/api/public/payments/webhook")({
           id: event.id, type: event.type, workspace_id: ws?.id ?? null, payload: event as any,
         });
 
-        if (ws && (event.type === "charge.succeeded" || event.type === "checkout.session.completed" || event.type === "invoice.paid")) {
-          const obj: any = event.data.object;
-          const amountCents = obj.amount_total ?? obj.amount_paid ?? obj.amount ?? 0;
-          const amount = Number(amountCents) / 100;
-          const currency = (obj.currency ?? "usd").toString().toUpperCase() === "USD" ? "USD" : "COP";
-          const concept = obj.description ?? obj.statement_descriptor ?? `Stripe ${event.type}`;
-          const date = new Date((event.created ?? Date.now() / 1000) * 1000).toISOString().slice(0, 10);
+        if (!ws) return Response.json({ ok: true });
+        const wsId = ws.id as string;
 
-          // Categoría INGRESOS POR VENTAS (00001)
-          const { data: cat } = await supabaseAdmin
-            .from("categories").select("id")
-            .eq("workspace_id", ws.id).eq("code", "00001").maybeSingle();
-
-          // Intentar enlazar cliente por email del customer
-          let client_id: string | null = null;
-          const customerEmail: string | undefined =
-            obj.customer_email ?? obj.receipt_email ?? obj.billing_details?.email;
-          if (customerEmail) {
-            const { data: c } = await supabaseAdmin
-              .from("clients").select("id")
-              .eq("workspace_id", ws.id)
-              .ilike("contact", `%${customerEmail}%`)
-              .maybeSingle();
-            if (c) client_id = c.id;
+        try {
+          switch (event.type) {
+            case "charge.succeeded":
+              await handleChargeSucceeded(wsId, event.data.object, stripe, event.id);
+              break;
+            case "charge.refunded":
+              await handleChargeRefunded(wsId, event.data.object, event.id);
+              break;
+            case "charge.dispute.funds_withdrawn":
+            case "charge.dispute.created":
+              await handleDispute(wsId, event.data.object, event.id);
+              break;
+            case "payout.paid":
+              await handlePayoutPaid(wsId, event.data.object, event.id);
+              break;
+            default:
+              // Ignored events (checkout.session.completed, invoice.paid) — charge.succeeded ya cubre
+              break;
           }
-
-          // Dedupe por charge/payment_intent/invoice id (por si llega también via sync manual)
-          const externalId: string = obj.id ?? "";
-          if (amount > 0 && externalId) {
-            const { data: dup } = await supabaseAdmin
-              .from("transactions").select("id")
-              .eq("workspace_id", ws.id)
-              .eq("source", "stripe")
-              .ilike("notes", `%${externalId}%`)
-              .maybeSingle();
-
-            if (!dup) {
-              await supabaseAdmin.from("transactions").insert({
-                workspace_id: ws.id, date, concept: String(concept).slice(0, 500),
-                type: "ingreso", amount, currency, account: "stripe", source: "stripe",
-                category_id: cat?.id ?? null,
-                client_id,
-                notes: `Stripe ${externalId} · evt ${event.id}`,
-              });
-            }
-          }
+        } catch (e: any) {
+          console.error("Stripe webhook handler error:", e);
         }
 
         return Response.json({ ok: true });
