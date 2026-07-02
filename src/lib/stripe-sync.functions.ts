@@ -96,11 +96,11 @@ async function processStripeSince(
       const source = bt.source;
       const sourceId: string = typeof source === "string" ? source : source?.id ?? bt.id;
 
-      if (type === "charge") {
+      if (type === "charge" || type === "payment") {
         // amount: cents (positive); fee: cents
         const gross = Math.abs(Number(bt.amount ?? 0)) / 100;
         const feeAmt = Math.abs(Number(bt.fee ?? 0)) / 100;
-        const concept = (source?.description ?? source?.statement_descriptor ?? "Stripe payment")
+        const concept = (source?.description ?? source?.statement_descriptor ?? bt.description ?? "Stripe payment")
           .toString().slice(0, 500);
 
         if (gross > 0) {
@@ -120,6 +120,7 @@ async function processStripeSince(
         }
         continue;
       }
+
 
       if (type === "refund" || type === "payment_refund") {
         const amt = Math.abs(Number(bt.amount ?? 0)) / 100;

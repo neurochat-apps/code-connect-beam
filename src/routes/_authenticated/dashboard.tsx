@@ -130,8 +130,12 @@ function DashboardPage() {
                     {data.lastTransactions.map((t: any) => (
                       <li key={t.id} className="py-3 flex items-center gap-3">
                         <div className={cn("size-9 rounded-full flex items-center justify-center shrink-0",
-                          t.type === "ingreso" ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground")}>
-                          {t.type === "ingreso" ? <ArrowDownRight className="size-4" /> : <ArrowUpRight className="size-4" />}
+                          t.type === "ingreso" ? "bg-primary/10 text-primary"
+                            : t.type === "neutro" ? "bg-muted text-muted-foreground"
+                            : "bg-muted text-muted-foreground")}>
+                          {t.type === "ingreso" ? <ArrowDownRight className="size-4" />
+                            : t.type === "neutro" ? <span className="text-xs">⇄</span>
+                            : <ArrowUpRight className="size-4" />}
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="text-sm font-medium truncate">{t.concept}</div>
@@ -144,9 +148,12 @@ function DashboardPage() {
                           </div>
                         </div>
                         <div className={cn("num text-sm font-medium tabular-nums",
-                          t.type === "ingreso" ? "text-primary" : "text-foreground")}>
-                          {t.type === "ingreso" ? "+" : "−"}{t.currency === "USD" ? fmtUSD(t.amount) : fmtCOP(t.amount)}
+                          t.type === "ingreso" ? "text-primary"
+                            : t.type === "neutro" ? "text-muted-foreground"
+                            : "text-foreground")}>
+                          {t.type === "ingreso" ? "+" : t.type === "neutro" ? "⇄ " : "−"}{t.currency === "USD" ? fmtUSD(t.amount) : fmtCOP(t.amount)}
                         </div>
+
                       </li>
                     ))}
                   </ul>
