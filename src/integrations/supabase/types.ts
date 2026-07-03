@@ -412,6 +412,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      generate_monthly_carryover: {
+        Args: { _target_month: string; _workspace_id: string }
+        Returns: string
+      }
       has_workspace_role: {
         Args: {
           _role: Database["public"]["Enums"]["workspace_role"]
@@ -420,6 +424,7 @@ export type Database = {
         Returns: boolean
       }
       is_workspace_member: { Args: { _workspace_id: string }; Returns: boolean }
+      run_monthly_carryover: { Args: never; Returns: number }
     }
     Enums: {
       client_status: "activo" | "pausado" | "completado"

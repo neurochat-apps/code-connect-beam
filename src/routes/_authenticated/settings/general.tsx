@@ -6,7 +6,7 @@ import { AppShell } from "@/components/AppShell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { getMyWorkspaces, updateWorkspace } from "@/lib/finanzas.functions";
+import { getMyWorkspaces, updateWorkspace, generateCarryover } from "@/lib/finanzas.functions";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/settings/general")({
@@ -72,7 +72,49 @@ function GeneralPage() {
           </div>
           <Button onClick={() => save.mutate()} disabled={save.isPending || !ws}>Guardar</Button>
         </div>
+
+        <CarryoverCard workspaceId={ws?.id} />
       </div>
     </AppShell>
   );
 }
+
+function CarryoverCard({ workspaceId }: { workspaceId?: string }) {
+  const fn = useServerFn(generateCarryover);
+  const qc = useQueryClient();
+  const now = new Date();
+  const defaultTarget = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().slice(0, 10);
+  const [target, setTarget] = useState(defaultTarget);
+  const run = useMutation({
+    mutationFn: () => fn({ data: { workspace_id: workspaceId!, target_month: target } }),
+    onSuccess: (r: any) => {
+      if (r.id) toast.success("Saldo del mes anterior registrado");
+      else toast.info("No hay saldo neto para arrastrar (o ya existe)");
+      qc.invalidateQueries();
+    },
+    onError: (e: any) => toast.error(e.message),
+  });
+  const prev = new Date(target);
+  prev.setDate(0);
+  const prevLabel = `${prev.getFullYear()}-${String(prev.getMonth() + 1).padStart(2, "0")}`;
+  return (
+    <div className="rounded-2xl border border-border bg-card p-5 space-y-3">
+      <div>
+        <h2 className="font-serif text-2xl">Flujo de caja acumulado</h2>
+        <p className="text-sm text-muted-foreground mt-1">
+          Cada día 1 se crea automáticamente una transacción con el saldo neto del mes anterior
+          (categoría 00015). Úsalo aquí para generar meses pasados manualmente.
+        </p>
+      </div>
+      <div>
+        <Label>Mes destino (día 1)</Label>
+        <Input type="date" value={target} onChange={(e) => setTarget(e.target.value)} />
+        <p className="text-xs text-muted-foreground mt-1">Tomará el neto de {prevLabel}.</p>
+      </div>
+      <Button onClick={() => run.mutate()} disabled={run.isPending || !workspaceId} variant="outline">
+        {run.isPending ? "Calculando..." : "Generar saldo de mes anterior"}
+      </Button>
+    </div>
+  );
+}
+
