@@ -426,10 +426,16 @@ export const getDashboard = createServerFn({ method: "GET" })
     for (const t of list) {
       const amt = Number(t.amount);
       const inCop = t.currency === "USD" ? amt * rate : amt;
-      if ((t.category as any)?.code === "00015" && t.type === "ingreso" && !t.is_pending) saldoAnterior += inCop;
-      if (t.is_pending && t.type === "ingreso") cartera += inCop;
-      else if (t.type === "ingreso") ingresos += inCop;
-      else if (t.type === "egreso") gastos += inCop;
+      const isSaldoAnterior = (t.category as any)?.code === "00015" && t.type === "ingreso" && !t.is_pending;
+      if (isSaldoAnterior) {
+        saldoAnterior += inCop;
+      } else if (t.is_pending && t.type === "ingreso") {
+        cartera += inCop;
+      } else if (t.type === "ingreso") {
+        ingresos += inCop;
+      } else if (t.type === "egreso") {
+        gastos += inCop;
+      }
       // neutro: transferencias entre cuentas, no cuentan como ingreso ni gasto
 
       if (t.currency === "USD" && !t.is_pending) {
