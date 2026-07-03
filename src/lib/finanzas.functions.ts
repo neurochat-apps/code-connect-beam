@@ -421,11 +421,12 @@ export const getDashboard = createServerFn({ method: "GET" })
     const list = txns ?? [];
 
     // KPIs COP (convert USD)
-    let ingresos = 0, gastos = 0, cartera = 0;
+    let ingresos = 0, gastos = 0, cartera = 0, saldoAnterior = 0;
     let stripeUSD = 0, chaseUSD = 0;
     for (const t of list) {
       const amt = Number(t.amount);
       const inCop = t.currency === "USD" ? amt * rate : amt;
+      if ((t.category as any)?.code === "00015" && t.type === "ingreso" && !t.is_pending) saldoAnterior += inCop;
       if (t.is_pending && t.type === "ingreso") cartera += inCop;
       else if (t.type === "ingreso") ingresos += inCop;
       else if (t.type === "egreso") gastos += inCop;
@@ -472,7 +473,7 @@ export const getDashboard = createServerFn({ method: "GET" })
 
     return {
       workspace: ws,
-      kpis: { ingresos, gastos, utilidad, cartera },
+      kpis: { ingresos, gastos, utilidad, cartera, saldoAnterior },
       usd: { stripe: stripeUSD, chase: chaseUSD, total: stripeUSD + chaseUSD },
       lastTransactions: list.slice(0, 10),
       fixedCosts: fixed ?? [],
