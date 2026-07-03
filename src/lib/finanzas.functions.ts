@@ -697,3 +697,18 @@ export const markTransactionPaid = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     return { ok: true };
   });
+
+export const generateCarryover = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((i) => z.object({
+    workspace_id: z.string().uuid(),
+    target_month: z.string(), // YYYY-MM-01
+  }).parse(i))
+  .handler(async ({ data, context }) => {
+    const { data: id, error } = await context.supabase.rpc("generate_monthly_carryover", {
+      _workspace_id: data.workspace_id,
+      _target_month: data.target_month,
+    });
+    if (error) throw new Error(error.message);
+    return { ok: true, id };
+  });
