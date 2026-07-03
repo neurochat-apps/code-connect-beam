@@ -26,6 +26,7 @@ import { Route as AuthenticatedSettingsFixedCostsRouteImport } from './routes/_a
 import { Route as AuthenticatedSettingsCatalogRouteImport } from './routes/_authenticated/settings/catalog'
 import { Route as ApiPublicTelegramWebhookRouteImport } from './routes/api/public/telegram/webhook'
 import { Route as ApiPublicPaymentsWebhookRouteImport } from './routes/api/public/payments/webhook'
+import { Route as ApiPublicHooksMonthlyCarryoverRouteImport } from './routes/api/public/hooks/monthly-carryover'
 
 const SignupRoute = SignupRouteImport.update({
   id: '/signup',
@@ -119,6 +120,12 @@ const ApiPublicPaymentsWebhookRoute =
     path: '/api/public/payments/webhook',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicHooksMonthlyCarryoverRoute =
+  ApiPublicHooksMonthlyCarryoverRouteImport.update({
+    id: '/api/public/hooks/monthly-carryover',
+    path: '/api/public/hooks/monthly-carryover',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -135,6 +142,7 @@ export interface FileRoutesByFullPath {
   '/settings/general': typeof AuthenticatedSettingsGeneralRoute
   '/settings/import': typeof AuthenticatedSettingsImportRoute
   '/settings/team': typeof AuthenticatedSettingsTeamRoute
+  '/api/public/hooks/monthly-carryover': typeof ApiPublicHooksMonthlyCarryoverRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
   '/api/public/telegram/webhook': typeof ApiPublicTelegramWebhookRoute
 }
@@ -153,6 +161,7 @@ export interface FileRoutesByTo {
   '/settings/general': typeof AuthenticatedSettingsGeneralRoute
   '/settings/import': typeof AuthenticatedSettingsImportRoute
   '/settings/team': typeof AuthenticatedSettingsTeamRoute
+  '/api/public/hooks/monthly-carryover': typeof ApiPublicHooksMonthlyCarryoverRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
   '/api/public/telegram/webhook': typeof ApiPublicTelegramWebhookRoute
 }
@@ -173,6 +182,7 @@ export interface FileRoutesById {
   '/_authenticated/settings/general': typeof AuthenticatedSettingsGeneralRoute
   '/_authenticated/settings/import': typeof AuthenticatedSettingsImportRoute
   '/_authenticated/settings/team': typeof AuthenticatedSettingsTeamRoute
+  '/api/public/hooks/monthly-carryover': typeof ApiPublicHooksMonthlyCarryoverRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
   '/api/public/telegram/webhook': typeof ApiPublicTelegramWebhookRoute
 }
@@ -193,6 +203,7 @@ export interface FileRouteTypes {
     | '/settings/general'
     | '/settings/import'
     | '/settings/team'
+    | '/api/public/hooks/monthly-carryover'
     | '/api/public/payments/webhook'
     | '/api/public/telegram/webhook'
   fileRoutesByTo: FileRoutesByTo
@@ -211,6 +222,7 @@ export interface FileRouteTypes {
     | '/settings/general'
     | '/settings/import'
     | '/settings/team'
+    | '/api/public/hooks/monthly-carryover'
     | '/api/public/payments/webhook'
     | '/api/public/telegram/webhook'
   id:
@@ -230,6 +242,7 @@ export interface FileRouteTypes {
     | '/_authenticated/settings/general'
     | '/_authenticated/settings/import'
     | '/_authenticated/settings/team'
+    | '/api/public/hooks/monthly-carryover'
     | '/api/public/payments/webhook'
     | '/api/public/telegram/webhook'
   fileRoutesById: FileRoutesById
@@ -242,6 +255,7 @@ export interface RootRouteChildren {
   ResetPasswordRoute: typeof ResetPasswordRoute
   SignupRoute: typeof SignupRoute
   AcceptInviteTokenRoute: typeof AcceptInviteTokenRoute
+  ApiPublicHooksMonthlyCarryoverRoute: typeof ApiPublicHooksMonthlyCarryoverRoute
   ApiPublicPaymentsWebhookRoute: typeof ApiPublicPaymentsWebhookRoute
   ApiPublicTelegramWebhookRoute: typeof ApiPublicTelegramWebhookRoute
 }
@@ -367,6 +381,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicPaymentsWebhookRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/hooks/monthly-carryover': {
+      id: '/api/public/hooks/monthly-carryover'
+      path: '/api/public/hooks/monthly-carryover'
+      fullPath: '/api/public/hooks/monthly-carryover'
+      preLoaderRoute: typeof ApiPublicHooksMonthlyCarryoverRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -404,6 +425,7 @@ const rootRouteChildren: RootRouteChildren = {
   ResetPasswordRoute: ResetPasswordRoute,
   SignupRoute: SignupRoute,
   AcceptInviteTokenRoute: AcceptInviteTokenRoute,
+  ApiPublicHooksMonthlyCarryoverRoute: ApiPublicHooksMonthlyCarryoverRoute,
   ApiPublicPaymentsWebhookRoute: ApiPublicPaymentsWebhookRoute,
   ApiPublicTelegramWebhookRoute: ApiPublicTelegramWebhookRoute,
 }
