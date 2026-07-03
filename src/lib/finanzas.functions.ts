@@ -426,7 +426,11 @@ export const getDashboard = createServerFn({ method: "GET" })
     for (const t of list) {
       const amt = Number(t.amount);
       const inCop = t.currency === "USD" ? amt * rate : amt;
-      const isSaldoAnterior = (t.category as any)?.code === "00015" && t.type === "ingreso" && !t.is_pending;
+      const categoryCode = (t.category as any)?.code;
+      const concept = String(t.concept ?? "").toLowerCase();
+      const isSaldoAnterior = t.type === "ingreso" && !t.is_pending && (
+        categoryCode === "00015" || concept.startsWith("saldo del mes") || concept.includes("carryover:")
+      );
       if (isSaldoAnterior) {
         saldoAnterior += inCop;
       } else if (t.is_pending && t.type === "ingreso") {
