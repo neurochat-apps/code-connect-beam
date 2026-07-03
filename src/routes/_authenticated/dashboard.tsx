@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { Plus, ArrowUpRight, ArrowDownRight, Wallet, TrendingUp, Target } from "lucide-react";
+import { Plus, ArrowUpRight, ArrowDownRight, Wallet, TrendingUp, Target, Landmark } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { TransactionDialog } from "@/components/TransactionDialog";
 import { AIChatDialog } from "@/components/AIChatDialog";
@@ -107,6 +107,16 @@ function DashboardPage() {
           <div className="text-sm text-muted-foreground">Cargando...</div>
         ) : (
           <>
+            {data.kpis.saldoAnterior > 0 && (
+              <div className="rounded-2xl bg-card border border-primary/30 p-4 flex items-center justify-between gap-4">
+                <div>
+                  <div className="text-xs text-muted-foreground">Saldo anterior agregado a este mes</div>
+                  <div className="mt-1 num-serif text-2xl md:text-3xl text-primary">{fmtCOP(data.kpis.saldoAnterior)}</div>
+                </div>
+                <Landmark className="size-5 text-primary" />
+              </div>
+            )}
+
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
               <KPI label="Ingresos" value={fmtCOP(data.kpis.ingresos)} icon={<ArrowDownRight className="size-4 text-primary" />} />
               <KPI label="Gastos" value={fmtCOP(data.kpis.gastos)} icon={<ArrowUpRight className="size-4" />} />
