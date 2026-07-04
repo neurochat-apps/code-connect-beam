@@ -32,7 +32,7 @@ export function fmtShortDate(d: string | Date): string {
   return new Intl.DateTimeFormat("es-CO", { day: "2-digit", month: "short" }).format(date);
 }
 
-export type Period = "today" | "week" | "month" | "quarter" | "year";
+export type Period = "today" | "week" | "month" | "quarter" | "year" | "all";
 
 function iso(d: Date) { return d.toISOString().slice(0, 10); }
 
