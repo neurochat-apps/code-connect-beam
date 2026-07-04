@@ -46,6 +46,7 @@ export function periodRange(p: Period): { from: string; to: string } {
     case "month": from.setDate(1); break;
     case "quarter": from.setMonth(now.getMonth() - 3); break;
     case "year": from.setMonth(0); from.setDate(1); break;
+    case "all": return { from: "1970-01-01", to };
   }
   return { from: iso(from), to };
 }
