@@ -25,7 +25,7 @@ function DashboardPage() {
   const dashFn = useServerFn(getDashboard);
   const breakdownFn = useServerFn(getCategoryBreakdown);
   const [mode, setMode] = useState<"period" | "month" | "custom">("period");
-  const [period, setPeriod] = useState<Period>("month");
+  const [period, setPeriod] = useState<Period>("all");
   const [ym, setYm] = useState<string>(currentYM());
   const [customFrom, setCustomFrom] = useState<string>(() => new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().slice(0, 10));
   const [customTo, setCustomTo] = useState<string>(() => new Date().toISOString().slice(0, 10));
