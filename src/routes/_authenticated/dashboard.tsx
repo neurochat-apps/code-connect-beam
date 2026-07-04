@@ -25,7 +25,7 @@ function DashboardPage() {
   const dashFn = useServerFn(getDashboard);
   const breakdownFn = useServerFn(getCategoryBreakdown);
   const [mode, setMode] = useState<"period" | "month" | "custom">("period");
-  const [period, setPeriod] = useState<Period>("month");
+  const [period, setPeriod] = useState<Period>("all");
   const [ym, setYm] = useState<string>(currentYM());
   const [customFrom, setCustomFrom] = useState<string>(() => new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().slice(0, 10));
   const [customTo, setCustomTo] = useState<string>(() => new Date().toISOString().slice(0, 10));
@@ -73,11 +73,11 @@ function DashboardPage() {
 
         <div className="space-y-2">
           <div className="flex gap-1 overflow-x-auto pb-1">
-            {(["today", "week", "month", "quarter", "year"] as Period[]).map((p) => (
+            {(["today", "week", "month", "quarter", "year", "all"] as Period[]).map((p) => (
               <button key={p} onClick={() => { setMode("period"); setPeriod(p); }}
                 className={cn("px-3 py-1.5 text-xs rounded-full border whitespace-nowrap",
                   mode === "period" && period === p ? "bg-primary text-primary-foreground border-primary" : "border-border bg-card hover:bg-accent")}>
-                {p === "today" ? "Hoy" : p === "week" ? "Semana" : p === "month" ? "Mes" : p === "quarter" ? "Trimestre" : "Año"}
+                {p === "today" ? "Hoy" : p === "week" ? "Semana" : p === "month" ? "Mes" : p === "quarter" ? "Trimestre" : p === "year" ? "Año" : "Todo"}
               </button>
             ))}
             <button onClick={() => setMode("month")}
