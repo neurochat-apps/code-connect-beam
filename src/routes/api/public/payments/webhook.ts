@@ -103,37 +103,33 @@ async function handleDispute(wsId: string, dispute: any, evtId: string) {
 
 async function handlePayoutPaid(wsId: string, payout: any, evtId: string) {
   const catTransfer = await findCat(wsId, "00011");
-  const { data: ws } = await supabaseAdmin
-    .from("workspaces").select("usd_cop_rate").eq("id", wsId).maybeSingle();
-  const trm = Number(ws?.usd_cop_rate ?? 4000);
   const usdAmt = Number(payout.amount ?? 0) / 100;
   if (usdAmt <= 0) return;
-  const copAmt = Math.round(usdAmt * trm);
   const date = new Date((payout.arrival_date ?? payout.created ?? Date.now() / 1000) * 1000)
     .toISOString().slice(0, 10);
-  const concept = "Transferencia Chase (USD) → Bancolombia (COP)";
+  const concept = "Transferencia Stripe (USD) → Chase (USD)";
 
   if (await alreadyExists(wsId, `${payout.id}:transfer_out`)) return;
 
-  const { data: usdRow } = await supabaseAdmin.from("transactions").insert({
-    workspace_id: wsId, source: "stripe", account: "chase",
+  const { data: outRow } = await supabaseAdmin.from("transactions").insert({
+    workspace_id: wsId, source: "stripe", account: "stripe",
     date, concept, type: "egreso", amount: usdAmt, currency: "USD",
     category_id: catTransfer,
-    notes: `Stripe ${payout.id}:transfer_out · TRM ${trm} · evt ${evtId}`,
+    notes: `Stripe ${payout.id}:transfer_out · evt ${evtId}`,
   }).select("id").maybeSingle();
 
-  const { data: copRow } = await supabaseAdmin.from("transactions").insert({
-    workspace_id: wsId, source: "stripe", account: "bancolombia",
-    date, concept, type: "ingreso", amount: copAmt, currency: "COP",
+  const { data: inRow } = await supabaseAdmin.from("transactions").insert({
+    workspace_id: wsId, source: "stripe", account: "chase",
+    date, concept, type: "ingreso", amount: usdAmt, currency: "USD",
     category_id: catTransfer,
-    notes: `Stripe ${payout.id}:transfer_in · TRM ${trm} · evt ${evtId}`,
-    paired_transaction_id: usdRow?.id ?? null,
+    notes: `Stripe ${payout.id}:transfer_in · evt ${evtId}`,
+    paired_transaction_id: outRow?.id ?? null,
   }).select("id").maybeSingle();
 
-  if (usdRow?.id && copRow?.id) {
+  if (outRow?.id && inRow?.id) {
     await supabaseAdmin.from("transactions")
-      .update({ paired_transaction_id: copRow.id })
-      .eq("id", usdRow.id);
+      .update({ paired_transaction_id: inRow.id })
+      .eq("id", outRow.id);
   }
 }
 
