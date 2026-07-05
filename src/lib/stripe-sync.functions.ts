@@ -69,7 +69,7 @@ async function processStripeSince(
     const notes = `Stripe ${marker}${row.notes ? ` · ${row.notes}` : ""}`;
     const { data: inserted, error } = await supabase
       .from("transactions")
-      .insert({ ...row, workspace_id: workspaceId, source: "stripe", account: row.account ?? "chase", notes })
+      .insert({ ...row, workspace_id: workspaceId, source: "stripe", account: row.account ?? "stripe", notes })
       .select("id").maybeSingle();
     if (error) { c.skipped++; return null; }
     c.inserted++;
@@ -149,13 +149,11 @@ async function processStripeSince(
       }
 
       if (type === "payout") {
-        // Transferencia: USD sale de Chase, COP entra a Bancolombia (paired)
+        // Transferencia: USD sale de la billetera Stripe y entra a Chase (USD). Sin conversión.
         const usdAmt = Math.abs(Number(bt.amount ?? 0)) / 100;
         if (usdAmt <= 0) { c.skipped++; continue; }
-        const copAmt = Math.round(usdAmt * trm);
-        const concept = `Transferencia Chase (USD) → Bancolombia (COP)`;
+        const concept = `Transferencia Stripe (USD) → Chase (USD)`;
 
-        // Dedupe by out-side marker
         const outMarker = `${sourceId}:transfer_out`;
         const { data: existing } = await supabase
           .from("transactions").select("id")
@@ -163,26 +161,25 @@ async function processStripeSince(
           .ilike("notes", `%${outMarker}%`).maybeSingle();
         if (existing) { c.skipped++; continue; }
 
-        const notesBase = `TRM ${trm}`;
-        const { data: usdRow } = await supabase.from("transactions").insert({
-          workspace_id: workspaceId, source: "stripe", account: "chase",
+        const { data: outRow } = await supabase.from("transactions").insert({
+          workspace_id: workspaceId, source: "stripe", account: "stripe",
           date, concept, type: "egreso", amount: usdAmt, currency: "USD",
           category_id: catTransfer,
-          notes: `Stripe ${outMarker} · ${notesBase}`,
+          notes: `Stripe ${outMarker}`,
         }).select("id").maybeSingle();
 
-        const { data: copRow } = await supabase.from("transactions").insert({
-          workspace_id: workspaceId, source: "stripe", account: "bancolombia",
-          date, concept, type: "ingreso", amount: copAmt, currency: "COP",
+        const { data: inRow } = await supabase.from("transactions").insert({
+          workspace_id: workspaceId, source: "stripe", account: "chase",
+          date, concept, type: "ingreso", amount: usdAmt, currency: "USD",
           category_id: catTransfer,
-          notes: `Stripe ${sourceId}:transfer_in · ${notesBase}`,
-          paired_transaction_id: usdRow?.id ?? null,
+          notes: `Stripe ${sourceId}:transfer_in`,
+          paired_transaction_id: outRow?.id ?? null,
         }).select("id").maybeSingle();
 
-        if (usdRow?.id && copRow?.id) {
+        if (outRow?.id && inRow?.id) {
           await supabase.from("transactions")
-            .update({ paired_transaction_id: copRow.id })
-            .eq("id", usdRow.id);
+            .update({ paired_transaction_id: inRow.id })
+            .eq("id", outRow.id);
           c.inserted += 2;
           c.payouts++;
           c.payoutUsd += usdAmt;
