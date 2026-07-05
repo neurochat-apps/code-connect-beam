@@ -161,9 +161,9 @@ export function TransactionDialog({
 
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
-              <Label>Categoría</Label>
-              <Select value={categoryId} onValueChange={setCategoryId}>
-                <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
+              <Label>Categoría *</Label>
+              <Select value={categoryId} onValueChange={setCategoryId} required>
+                <SelectTrigger><SelectValue placeholder="Selecciona una…" /></SelectTrigger>
                 <SelectContent>
                   {filteredCats.map((c: any) => (
                     <SelectItem key={c.id} value={c.id}>{c.code} · {c.name}</SelectItem>
