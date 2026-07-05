@@ -69,7 +69,7 @@ async function processStripeSince(
     const notes = `Stripe ${marker}${row.notes ? ` · ${row.notes}` : ""}`;
     const { data: inserted, error } = await supabase
       .from("transactions")
-      .insert({ ...row, workspace_id: workspaceId, source: "stripe", account: row.account ?? "chase", notes })
+      .insert({ ...row, workspace_id: workspaceId, source: "stripe", account: row.account ?? "stripe", notes })
       .select("id").maybeSingle();
     if (error) { c.skipped++; return null; }
     c.inserted++;
