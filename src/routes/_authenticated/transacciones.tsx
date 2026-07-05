@@ -239,6 +239,9 @@ function TxnPage() {
                       {t.type === "ingreso" ? "+" : t.type === "neutro" ? "⇄ " : "−"}{t.currency === "USD" ? fmtUSD(t.amount) : fmtCOP(t.amount)}
                     </div>
 
+                    <Button variant="ghost" size="icon" onClick={() => { setEditing(t); setOpen(true); }}>
+                      <Pencil className="size-4" />
+                    </Button>
                     <Button variant="ghost" size="icon" onClick={() => { if (confirm("¿Eliminar?")) del.mutate(t.id); }}>
                       <Trash2 className="size-4" />
                     </Button>
