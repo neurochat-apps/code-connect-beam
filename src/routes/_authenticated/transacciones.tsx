@@ -126,7 +126,7 @@ function TxnPage() {
             <h1 className="font-serif text-4xl">Transacciones</h1>
             <p className="text-sm text-muted-foreground mt-1">Todos los movimientos</p>
           </div>
-          <Button onClick={() => setOpen(true)} disabled={!ws}>
+          <Button onClick={() => { setEditing(null); setOpen(true); }} disabled={!ws}>
             <Plus className="size-4" /> Registrar
           </Button>
         </div>
