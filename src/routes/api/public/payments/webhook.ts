@@ -111,20 +111,20 @@ async function handlePayoutPaid(wsId: string, payout: any, evtId: string) {
   const copAmt = Math.round(usdAmt * trm);
   const date = new Date((payout.arrival_date ?? payout.created ?? Date.now() / 1000) * 1000)
     .toISOString().slice(0, 10);
-  const concept = "Transferencia Stripe → Bancolombia";
+  const concept = "Transferencia Chase (USD) → Bancolombia (COP)";
 
   if (await alreadyExists(wsId, `${payout.id}:transfer_out`)) return;
 
   const { data: usdRow } = await supabaseAdmin.from("transactions").insert({
-    workspace_id: wsId, source: "stripe", account: "stripe",
-    date, concept, type: "neutro", amount: usdAmt, currency: "USD",
+    workspace_id: wsId, source: "stripe", account: "chase",
+    date, concept, type: "egreso", amount: usdAmt, currency: "USD",
     category_id: catTransfer,
     notes: `Stripe ${payout.id}:transfer_out · TRM ${trm} · evt ${evtId}`,
   }).select("id").maybeSingle();
 
   const { data: copRow } = await supabaseAdmin.from("transactions").insert({
     workspace_id: wsId, source: "stripe", account: "bancolombia",
-    date, concept, type: "neutro", amount: copAmt, currency: "COP",
+    date, concept, type: "ingreso", amount: copAmt, currency: "COP",
     category_id: catTransfer,
     notes: `Stripe ${payout.id}:transfer_in · TRM ${trm} · evt ${evtId}`,
     paired_transaction_id: usdRow?.id ?? null,
