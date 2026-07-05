@@ -158,27 +158,49 @@ export function AIChatDialog({
 
         <div className="flex-1 overflow-y-auto px-5 py-4 space-y-3">
           {messages.map((m, i) => {
-            if (m.role === "pending") {
-              const disabled = !!m.resolved;
+            if (m.role === "batch") {
+              const pendingCount = m.actions.filter((a) => a.status === "pending").length;
+              const isMulti = m.actions.length > 1;
               return (
                 <div key={i} className="flex justify-start">
-                  <div className="max-w-[90%] rounded-2xl border border-border bg-card p-3 text-sm space-y-2">
-                    <div className="text-xs font-semibold text-muted-foreground">Confirmar acción</div>
-                    <div className="whitespace-pre-wrap">{m.action.summary}</div>
-                    {m.resolved ? (
-                      <div className="text-xs text-muted-foreground">
-                        {m.resolved === "done" ? "Confirmada" : m.resolved === "cancelled" ? "Cancelada" : "Editada"}
-                      </div>
-                    ) : (
-                      <div className="flex gap-2 pt-1">
-                        <Button size="sm" onClick={() => confirmPending(i)} disabled={disabled || loading}>
-                          <Check className="size-3 mr-1" /> Confirmar
+                  <div className="max-w-[92%] w-full rounded-2xl border border-border bg-card p-3 text-sm space-y-2">
+                    <div className="text-xs font-semibold text-muted-foreground">
+                      Confirmar {isMulti ? `${m.actions.length} acciones` : "acción"}
+                    </div>
+                    <div className="space-y-2">
+                      {m.actions.map((a, j) => {
+                        const statusLabel =
+                          a.status === "done" ? "✅ Confirmada"
+                          : a.status === "cancelled" ? "❌ Cancelada"
+                          : a.status === "error" ? `⚠️ Error: ${a.error ?? ""}`
+                          : null;
+                        return (
+                          <div key={j} className="rounded-lg border border-border/60 p-2 space-y-1 bg-background/40">
+                            {isMulti && <div className="text-[10px] text-muted-foreground">#{j + 1}</div>}
+                            <div className="whitespace-pre-wrap text-sm">{a.summary}</div>
+                            {statusLabel ? (
+                              <div className="text-xs text-muted-foreground">{statusLabel}</div>
+                            ) : (
+                              <div className="flex gap-2 pt-1">
+                                <Button size="sm" onClick={() => runAction(i, j)} disabled={loading}>
+                                  <Check className="size-3 mr-1" /> Confirmar
+                                </Button>
+                                <Button size="sm" variant="ghost" onClick={() => cancelAction(i, j)} disabled={loading}>
+                                  <X className="size-3 mr-1" /> Cancelar
+                                </Button>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                    {isMulti && pendingCount > 0 && (
+                      <div className="flex gap-2 pt-1 border-t border-border/60 mt-2">
+                        <Button size="sm" onClick={() => confirmAll(i)} disabled={loading}>
+                          <Check className="size-3 mr-1" /> Confirmar todas ({pendingCount})
                         </Button>
-                        <Button size="sm" variant="outline" onClick={() => editPending(i)} disabled={disabled || loading}>
-                          <Pencil className="size-3 mr-1" /> Editar
-                        </Button>
-                        <Button size="sm" variant="ghost" onClick={() => cancelPending(i)} disabled={disabled || loading}>
-                          <X className="size-3 mr-1" /> Cancelar
+                        <Button size="sm" variant="ghost" onClick={() => cancelAll(i)} disabled={loading}>
+                          <X className="size-3 mr-1" /> Cancelar todas
                         </Button>
                       </div>
                     )}
