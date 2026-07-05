@@ -242,6 +242,9 @@ export const listTransactions = createServerFn({ method: "GET" })
     from: z.string().optional(),
     to: z.string().optional(),
     currency: z.enum(["COP", "USD"]).optional(),
+    type: z.enum(["ingreso", "egreso", "neutro"]).optional(),
+    account: z.enum(["bancolombia", "stripe", "chase", "efectivo", "otra"]).optional(),
+    category_id: z.string().optional(), // uuid | "none" | undefined
     limit: z.number().int().min(1).max(500).default(100),
   }).parse(i))
   .handler(async ({ data, context }) => {
@@ -255,6 +258,10 @@ export const listTransactions = createServerFn({ method: "GET" })
     if (data.from) q = q.gte("date", data.from);
     if (data.to) q = q.lte("date", data.to);
     if (data.currency) q = q.eq("currency", data.currency);
+    if (data.type) q = q.eq("type", data.type);
+    if (data.account) q = q.eq("account", data.account);
+    if (data.category_id === "none") q = q.is("category_id", null);
+    else if (data.category_id) q = q.eq("category_id", data.category_id);
     const { data: rows, error } = await q;
     if (error) throw new Error(error.message);
     return rows ?? [];
