@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { Plus, Trash2, X } from "lucide-react";
+import { Plus, Trash2, X, Pencil } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { TransactionDialog } from "@/components/TransactionDialog";
 import { Button } from "@/components/ui/button";
@@ -34,6 +34,7 @@ function TxnPage() {
   const delManyFn = useServerFn(deleteTransactions);
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
+  const [editing, setEditing] = useState<any | null>(null);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [confirmOpen, setConfirmOpen] = useState(false);
 
@@ -125,7 +126,7 @@ function TxnPage() {
             <h1 className="font-serif text-4xl">Transacciones</h1>
             <p className="text-sm text-muted-foreground mt-1">Todos los movimientos</p>
           </div>
-          <Button onClick={() => setOpen(true)} disabled={!ws}>
+          <Button onClick={() => { setEditing(null); setOpen(true); }} disabled={!ws}>
             <Plus className="size-4" /> Registrar
           </Button>
         </div>
@@ -238,6 +239,9 @@ function TxnPage() {
                       {t.type === "ingreso" ? "+" : t.type === "neutro" ? "⇄ " : "−"}{t.currency === "USD" ? fmtUSD(t.amount) : fmtCOP(t.amount)}
                     </div>
 
+                    <Button variant="ghost" size="icon" onClick={() => { setEditing(t); setOpen(true); }}>
+                      <Pencil className="size-4" />
+                    </Button>
                     <Button variant="ghost" size="icon" onClick={() => { if (confirm("¿Eliminar?")) del.mutate(t.id); }}>
                       <Trash2 className="size-4" />
                     </Button>
@@ -279,7 +283,7 @@ function TxnPage() {
         </AlertDialogContent>
       </AlertDialog>
 
-      {ws && <TransactionDialog open={open} onOpenChange={setOpen} workspaceId={ws.id} />}
+      {ws && <TransactionDialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) setEditing(null); }} workspaceId={ws.id} transaction={editing} />}
     </AppShell>
   );
 }

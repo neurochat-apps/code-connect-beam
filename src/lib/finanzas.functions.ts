@@ -336,7 +336,7 @@ export const updateTransaction = createServerFn({ method: "POST" })
     concept: z.string().min(1).max(200).optional(),
     amount: z.number().positive().optional(),
     currency: z.enum(["COP", "USD"]).optional(),
-    type: z.enum(["ingreso", "egreso"]).optional(),
+    type: z.enum(["ingreso", "egreso", "neutro"]).optional(),
     category_id: z.string().uuid().nullable().optional(),
     account: z.enum(["bancolombia", "stripe", "chase", "efectivo", "otra"]).optional(),
     client_id: z.string().uuid().nullable().optional(),
