@@ -97,13 +97,16 @@ export const chatFinanciero = createServerFn({ method: "POST" })
       const res = await gatewayChat({ messages, tools: TOOLS });
 
       if (res.tool_calls?.length) {
-        // ¿Hay una acción? La primera acción gana, pedimos confirmación y salimos.
-        const action = res.tool_calls.find((c) => ACTION_TOOLS.has(c.name));
-        if (action) {
+        // ¿Hay acciones? Devolvemos TODAS para confirmar en batch.
+        const actions = res.tool_calls.filter((c) => ACTION_TOOLS.has(c.name));
+        if (actions.length) {
           return {
             type: "confirm" as const,
-            action: { name: action.name, args: action.arguments },
-            summary: summarizeAction(action.name, action.arguments),
+            actions: actions.map((a) => ({
+              name: a.name,
+              args: a.arguments,
+              summary: summarizeAction(a.name, a.arguments),
+            })),
           };
         }
         // Todas son queries → ejecutar y reintroducir resultados
