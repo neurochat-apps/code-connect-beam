@@ -67,11 +67,12 @@ export function TransactionDialog({
     mutationFn: async () => {
       const amt = parseFloat(amount);
       if (!amt || amt <= 0) throw new Error("Monto inválido");
+      if (!categoryId) throw new Error("Selecciona una categoría");
       return createFn({
         data: {
           workspace_id: workspaceId,
           date, concept, type, amount: amt, currency,
-          category_id: categoryId || null,
+          category_id: categoryId,
           account, source: "manual",
           client_id: clientId || null,
           notes: notes || null,
