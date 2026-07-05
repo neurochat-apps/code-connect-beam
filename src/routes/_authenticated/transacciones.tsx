@@ -23,8 +23,8 @@ export const Route = createFileRoute("/_authenticated/transacciones")({
   component: TxnPage,
 });
 
-type Account = "bancolombia" | "stripe" | "chase" | "efectivo" | "otra";
-type TxType = "ingreso" | "egreso" | "neutro";
+
+
 
 function TxnPage() {
   const wsFn = useServerFn(getMyWorkspaces);
