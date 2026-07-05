@@ -58,14 +58,6 @@ export const TOOLS: ToolDef[] = [
   {
     type: "function",
     function: {
-      name: "compare_months",
-      description: "Compara totales del mes actual vs el anterior.",
-      parameters: { type: "object", properties: {} },
-    },
-  },
-  {
-    type: "function",
-    function: {
       name: "list_categories",
       description: "Lista todas las categorías del workspace (incluye las nuevas creadas por el usuario). Úsala cuando el usuario pregunte por sus categorías o antes de crear una transacción para elegir el código correcto.",
       parameters: { type: "object", properties: {} },
