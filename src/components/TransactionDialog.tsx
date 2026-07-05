@@ -67,11 +67,12 @@ export function TransactionDialog({
     mutationFn: async () => {
       const amt = parseFloat(amount);
       if (!amt || amt <= 0) throw new Error("Monto inválido");
+      if (!categoryId) throw new Error("Selecciona una categoría");
       return createFn({
         data: {
           workspace_id: workspaceId,
           date, concept, type, amount: amt, currency,
-          category_id: categoryId || null,
+          category_id: categoryId,
           account, source: "manual",
           client_id: clientId || null,
           notes: notes || null,
@@ -160,9 +161,9 @@ export function TransactionDialog({
 
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
-              <Label>Categoría</Label>
-              <Select value={categoryId} onValueChange={setCategoryId}>
-                <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
+              <Label>Categoría *</Label>
+              <Select value={categoryId} onValueChange={setCategoryId} required>
+                <SelectTrigger><SelectValue placeholder="Selecciona una…" /></SelectTrigger>
                 <SelectContent>
                   {filteredCats.map((c: any) => (
                     <SelectItem key={c.id} value={c.id}>{c.code} · {c.name}</SelectItem>

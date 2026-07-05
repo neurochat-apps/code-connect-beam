@@ -69,7 +69,7 @@ async function processStripeSince(
     const notes = `Stripe ${marker}${row.notes ? ` · ${row.notes}` : ""}`;
     const { data: inserted, error } = await supabase
       .from("transactions")
-      .insert({ ...row, workspace_id: workspaceId, source: "stripe", account: "stripe", notes })
+      .insert({ ...row, workspace_id: workspaceId, source: "stripe", account: row.account ?? "chase", notes })
       .select("id").maybeSingle();
     if (error) { c.skipped++; return null; }
     c.inserted++;
@@ -149,11 +149,11 @@ async function processStripeSince(
       }
 
       if (type === "payout") {
-        // Transferencia: USD sale de Stripe, COP entra a Bancolombia
+        // Transferencia: USD sale de Chase, COP entra a Bancolombia (paired)
         const usdAmt = Math.abs(Number(bt.amount ?? 0)) / 100;
         if (usdAmt <= 0) { c.skipped++; continue; }
         const copAmt = Math.round(usdAmt * trm);
-        const concept = `Transferencia Stripe → Bancolombia`;
+        const concept = `Transferencia Chase (USD) → Bancolombia (COP)`;
 
         // Dedupe by out-side marker
         const outMarker = `${sourceId}:transfer_out`;
@@ -165,15 +165,15 @@ async function processStripeSince(
 
         const notesBase = `TRM ${trm}`;
         const { data: usdRow } = await supabase.from("transactions").insert({
-          workspace_id: workspaceId, source: "stripe", account: "stripe",
-          date, concept, type: "neutro", amount: usdAmt, currency: "USD",
+          workspace_id: workspaceId, source: "stripe", account: "chase",
+          date, concept, type: "egreso", amount: usdAmt, currency: "USD",
           category_id: catTransfer,
           notes: `Stripe ${outMarker} · ${notesBase}`,
         }).select("id").maybeSingle();
 
         const { data: copRow } = await supabase.from("transactions").insert({
           workspace_id: workspaceId, source: "stripe", account: "bancolombia",
-          date, concept, type: "neutro", amount: copAmt, currency: "COP",
+          date, concept, type: "ingreso", amount: copAmt, currency: "COP",
           category_id: catTransfer,
           notes: `Stripe ${sourceId}:transfer_in · ${notesBase}`,
           paired_transaction_id: usdRow?.id ?? null,

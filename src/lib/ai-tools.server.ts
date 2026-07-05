@@ -58,6 +58,28 @@ export const TOOLS: ToolDef[] = [
   {
     type: "function",
     function: {
+      name: "list_categories",
+      description: "Lista todas las categorías del workspace (incluye las nuevas creadas por el usuario). Úsala cuando el usuario pregunte por sus categorías o antes de crear una transacción para elegir el código correcto.",
+      parameters: { type: "object", properties: {} },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "list_transactions_by_month",
+      description: "Lista las transacciones de un mes específico con categoría, cuenta, monto y moneda. Úsala para ver el detalle del mes actual, del mes pasado o de cualquier mes.",
+      parameters: {
+        type: "object",
+        properties: {
+          ym: { type: "string", description: "Mes en formato YYYY-MM. Default: mes actual." },
+          type: { type: "string", enum: ["ingreso", "egreso", "neutro"], description: "Filtro opcional por tipo." },
+        },
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
       name: "get_account_balance",
       description: "Saldo aproximado por cuenta (bancolombia, stripe, chase, efectivo).",
       parameters: { type: "object", properties: {} },
@@ -297,6 +319,28 @@ export async function executeTool(
       }
       return { balances: bal };
     }
+    case "list_categories": {
+      const { data } = await supabase
+        .from("categories").select("code,name,type,is_system")
+        .eq("workspace_id", workspaceId).order("code");
+      return { categories: data ?? [] };
+    }
+    case "list_transactions_by_month": {
+      const now = new Date();
+      const ym = args.ym ?? `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+      const [y, m] = ym.split("-").map(Number);
+      const from = new Date(y, m - 1, 1).toISOString().slice(0, 10);
+      const to = new Date(y, m, 0).toISOString().slice(0, 10);
+      let q = supabase.from("transactions")
+        .select("id,date,concept,type,amount,currency,account,is_pending,category:categories(code,name),client:clients(name)")
+        .eq("workspace_id", workspaceId)
+        .gte("date", from).lte("date", to)
+        .order("date", { ascending: false }).limit(300);
+      if (args.type) q = q.eq("type", args.type);
+      const { data } = await q;
+      return { ym, from, to, count: (data ?? []).length, transactions: data ?? [] };
+    }
+
 
     // ===== ACTIONS =====
     case "create_transaction": {
