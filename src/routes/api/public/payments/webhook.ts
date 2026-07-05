@@ -21,7 +21,7 @@ async function insertRow(wsId: string, marker: string, row: any, extraNote?: str
   if (await alreadyExists(wsId, marker)) return null;
   const notes = `Stripe ${marker}${extraNote ? ` · ${extraNote}` : ""}`;
   const { data } = await supabaseAdmin.from("transactions")
-    .insert({ ...row, workspace_id: wsId, source: "stripe", account: row.account ?? "chase", notes })
+    .insert({ ...row, workspace_id: wsId, source: "stripe", account: row.account ?? "stripe", notes })
     .select("id").maybeSingle();
   return data?.id ?? null;
 }
