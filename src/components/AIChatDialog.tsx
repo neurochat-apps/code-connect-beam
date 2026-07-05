@@ -3,7 +3,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Send, Brain, Mic, MicOff, Check, X, Pencil, AlertTriangle, Info, CheckCircle2 } from "lucide-react";
+import { Send, Brain, Mic, MicOff, Check, X, AlertTriangle, Info, CheckCircle2 } from "lucide-react";
 import { chatFinanciero, executeAction, getChatAlerts } from "@/lib/ai.functions";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
