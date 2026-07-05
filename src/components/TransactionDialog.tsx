@@ -13,21 +13,29 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import {
-  createTransaction, listCategories, listClients, createClient,
+  createTransaction, updateTransaction, listCategories, listClients, createClient,
 } from "@/lib/finanzas.functions";
 import { Plus } from "lucide-react";
 
 type Currency = "COP" | "USD";
-type TxType = "ingreso" | "egreso";
+type TxType = "ingreso" | "egreso" | "neutro";
 type Account = "bancolombia" | "stripe" | "chase" | "efectivo" | "otra";
 
 export function TransactionDialog({
-  open, onOpenChange, workspaceId,
-}: { open: boolean; onOpenChange: (v: boolean) => void; workspaceId: string }) {
+  open, onOpenChange, workspaceId, transaction,
+}: {
+  open: boolean;
+  onOpenChange: (v: boolean) => void;
+  workspaceId: string;
+  transaction?: any | null;
+}) {
   const qc = useQueryClient();
   const createFn = useServerFn(createTransaction);
+  const updateFn = useServerFn(updateTransaction);
   const catsFn = useServerFn(listCategories);
   const cliFn = useServerFn(listClients);
+
+  const isEdit = !!transaction?.id;
 
   const { data: categories = [] } = useQuery({
     queryKey: ["categories", workspaceId],
@@ -54,11 +62,27 @@ export function TransactionDialog({
   const [pairAcc, setPairAcc] = useState<Account>("bancolombia");
 
   useEffect(() => {
-    if (!open) {
-      setConcept(""); setAmount(""); setNotes(""); setIsPending(false);
-      setPairCOP(""); setCategoryId(""); setClientId("");
+    if (!open) return;
+    if (transaction) {
+      setDate(transaction.date ?? new Date().toISOString().slice(0, 10));
+      setConcept(transaction.concept ?? "");
+      setType((transaction.type as TxType) ?? "ingreso");
+      setAmount(String(transaction.amount ?? ""));
+      setCurrency((transaction.currency as Currency) ?? "COP");
+      setCategoryId(transaction.category_id ?? "");
+      setAccount((transaction.account as Account) ?? "bancolombia");
+      setClientId(transaction.client_id ?? "");
+      setNotes(transaction.notes ?? "");
+      setIsPending(!!transaction.is_pending);
+      setPairCOP(""); setPairAcc("bancolombia");
+    } else {
+      setDate(new Date().toISOString().slice(0, 10));
+      setConcept(""); setType("ingreso"); setAmount("");
+      setCurrency("COP"); setCategoryId(""); setAccount("bancolombia");
+      setClientId(""); setNotes(""); setIsPending(false);
+      setPairCOP(""); setPairAcc("bancolombia");
     }
-  }, [open]);
+  }, [open, transaction]);
 
   const selectedCat = categories.find((c: any) => c.id === categoryId);
   const isTransfer = selectedCat?.code === "00011";
@@ -68,10 +92,23 @@ export function TransactionDialog({
       const amt = parseFloat(amount);
       if (!amt || amt <= 0) throw new Error("Monto inválido");
       if (!categoryId) throw new Error("Selecciona una categoría");
+      if (isEdit) {
+        return updateFn({
+          data: {
+            id: transaction.id,
+            date, concept, amount: amt, currency, type,
+            category_id: categoryId,
+            account,
+            client_id: clientId || null,
+            notes: notes || null,
+            is_pending: isPending,
+          },
+        });
+      }
       return createFn({
         data: {
           workspace_id: workspaceId,
-          date, concept, type, amount: amt, currency,
+          date, concept, type: type === "neutro" ? "ingreso" : type, amount: amt, currency,
           category_id: categoryId,
           account, source: "manual",
           client_id: clientId || null,
@@ -83,14 +120,13 @@ export function TransactionDialog({
       });
     },
     onSuccess: () => {
-      toast.success("Transacción registrada");
+      toast.success(isEdit ? "Transacción actualizada" : "Transacción registrada");
       qc.invalidateQueries();
       onOpenChange(false);
     },
     onError: (e: any) => toast.error(e.message),
   });
 
-  // Mostrar todas las categorías ordenadas por código; el usuario elige libremente.
   const filteredCats = [...categories].sort((a: any, b: any) => a.code.localeCompare(b.code));
 
   const [newClientName, setNewClientName] = useState("");
@@ -117,7 +153,9 @@ export function TransactionDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="font-serif text-2xl">Nueva transacción</DialogTitle>
+          <DialogTitle className="font-serif text-2xl">
+            {isEdit ? "Editar transacción" : "Nueva transacción"}
+          </DialogTitle>
         </DialogHeader>
         <form onSubmit={(e) => { e.preventDefault(); mut.mutate(); }} className="space-y-4">
           <div className="grid grid-cols-2 gap-3">
@@ -132,6 +170,7 @@ export function TransactionDialog({
                 <SelectContent>
                   <SelectItem value="ingreso">Ingreso</SelectItem>
                   <SelectItem value="egreso">Egreso</SelectItem>
+                  {isEdit && <SelectItem value="neutro">Neutro</SelectItem>}
                 </SelectContent>
               </Select>
             </div>
@@ -186,7 +225,7 @@ export function TransactionDialog({
             </div>
           </div>
 
-          {isTransfer && currency === "USD" && (
+          {!isEdit && isTransfer && currency === "USD" && (
             <div className="rounded-lg border border-border bg-accent/30 p-3 space-y-3">
               <p className="text-xs text-muted-foreground">Transferencia USD→COP: ingresa el COP recibido y la cuenta destino.</p>
               <div className="grid grid-cols-2 gap-3">
@@ -248,7 +287,9 @@ export function TransactionDialog({
 
           <DialogFooter>
             <Button type="button" variant="ghost" onClick={() => onOpenChange(false)}>Cancelar</Button>
-            <Button type="submit" disabled={mut.isPending}>{mut.isPending ? "Guardando..." : "Guardar"}</Button>
+            <Button type="submit" disabled={mut.isPending}>
+              {mut.isPending ? "Guardando..." : isEdit ? "Guardar cambios" : "Guardar"}
+            </Button>
           </DialogFooter>
         </form>
       </DialogContent>
