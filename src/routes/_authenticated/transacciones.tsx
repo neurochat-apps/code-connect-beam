@@ -34,6 +34,7 @@ function TxnPage() {
   const delManyFn = useServerFn(deleteTransactions);
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
+  const [editing, setEditing] = useState<any | null>(null);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [confirmOpen, setConfirmOpen] = useState(false);
 
