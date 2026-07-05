@@ -438,8 +438,11 @@ export const getDashboard = createServerFn({ method: "GET" })
       const isSaldoAnterior = t.type === "ingreso" && !t.is_pending && (
         categoryCode === "00015" || concept.startsWith("saldo del mes") || concept.includes("carryover:")
       );
+      const isTransfer = categoryCode === "00011";
       if (isSaldoAnterior) {
         saldoAnterior += inCop;
+      } else if (isTransfer) {
+        // transferencias entre cuentas (USD↔COP): no cuentan como ingreso ni gasto
       } else if (t.is_pending && t.type === "ingreso") {
         cartera += inCop;
       } else if (t.type === "ingreso") {
