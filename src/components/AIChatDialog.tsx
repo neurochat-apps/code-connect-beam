@@ -78,56 +78,60 @@ export function AIChatDialog({
     try {
       const res = await chatFn({ data: { workspace_id: workspaceId, message: msg, history } });
       if (res.type === "confirm") {
-        const pending: Msg = {
-          role: "pending",
-          action: { name: res.action.name, args: res.action.args, summary: res.summary },
+        const batch: Msg = {
+          role: "batch",
+          actions: res.actions.map((a) => ({ ...a, status: "pending" as const })),
         };
-        setMessages([...next, pending]);
+        setMessages([...next, batch]);
       } else {
         setMessages([...next, { role: "assistant", content: res.reply || "—" }]);
       }
-
     } catch (e: any) {
       toast.error(e.message);
     } finally { setLoading(false); }
   }
 
-  async function confirmPending(idx: number) {
-    const m = messages[idx];
-    if (m.role !== "pending" || !workspaceId) return;
-    setLoading(true);
-    try {
-      await execFn({ data: { workspace_id: workspaceId, name: m.action.name, args: m.action.args } });
-      setMessages((prev) => {
-        const updated: Msg[] = prev.map((x, i): Msg =>
-          i === idx && x.role === "pending" ? { ...x, resolved: "done" as const } : x
-        );
-        return [...updated, { role: "assistant", content: "✅ Hecho." }];
-      });
-      alertsFn({ data: { workspace_id: workspaceId } }).then((r) => setAlerts(r.alerts ?? [])).catch(() => {});
-    } catch (e: any) {
-      toast.error(e.message);
-    } finally { setLoading(false); }
-  }
-
-  function cancelPending(idx: number) {
-    setMessages((prev) => {
-      const updated: Msg[] = prev.map((x, i): Msg =>
-        i === idx && x.role === "pending" ? { ...x, resolved: "cancelled" as const } : x
-      );
-      return [...updated, { role: "assistant", content: "❌ Acción cancelada." }];
-    });
-  }
-
-
-  function editPending(idx: number) {
-    const m = messages[idx];
-    if (m.role !== "pending") return;
-    setInput(`Ajusta: ${m.action.summary.replace(/\n/g, " · ")}`);
+  function updateBatch(msgIdx: number, updater: (actions: PendingAction[]) => PendingAction[]) {
     setMessages((prev) =>
-      prev.map((x, i): Msg => i === idx && x.role === "pending" ? { ...x, resolved: "edited" as const } : x)
+      prev.map((x, i): Msg => (i === msgIdx && x.role === "batch" ? { ...x, actions: updater(x.actions) } : x))
     );
   }
+
+  async function runAction(msgIdx: number, actIdx: number) {
+    const m = messages[msgIdx];
+    if (m.role !== "batch" || !workspaceId) return;
+    const a = m.actions[actIdx];
+    if (!a || a.status !== "pending") return;
+    setLoading(true);
+    try {
+      await execFn({ data: { workspace_id: workspaceId, name: a.name, args: a.args } });
+      updateBatch(msgIdx, (acts) => acts.map((x, i) => (i === actIdx ? { ...x, status: "done" } : x)));
+      alertsFn({ data: { workspace_id: workspaceId } }).then((r) => setAlerts(r.alerts ?? [])).catch(() => {});
+    } catch (e: any) {
+      updateBatch(msgIdx, (acts) => acts.map((x, i) => (i === actIdx ? { ...x, status: "error", error: e.message } : x)));
+      toast.error(e.message);
+    } finally { setLoading(false); }
+  }
+
+  function cancelAction(msgIdx: number, actIdx: number) {
+    updateBatch(msgIdx, (acts) => acts.map((x, i) => (i === actIdx ? { ...x, status: "cancelled" } : x)));
+  }
+
+  async function confirmAll(msgIdx: number) {
+    const m = messages[msgIdx];
+    if (m.role !== "batch") return;
+    for (let i = 0; i < m.actions.length; i++) {
+      if (m.actions[i].status === "pending") {
+        // eslint-disable-next-line no-await-in-loop
+        await runAction(msgIdx, i);
+      }
+    }
+  }
+
+  function cancelAll(msgIdx: number) {
+    updateBatch(msgIdx, (acts) => acts.map((x) => (x.status === "pending" ? { ...x, status: "cancelled" } : x)));
+  }
+
 
 
   return (
