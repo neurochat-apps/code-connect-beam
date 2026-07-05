@@ -319,6 +319,28 @@ export async function executeTool(
       }
       return { balances: bal };
     }
+    case "list_categories": {
+      const { data } = await supabase
+        .from("categories").select("code,name,type,is_system")
+        .eq("workspace_id", workspaceId).order("code");
+      return { categories: data ?? [] };
+    }
+    case "list_transactions_by_month": {
+      const now = new Date();
+      const ym = args.ym ?? `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+      const [y, m] = ym.split("-").map(Number);
+      const from = new Date(y, m - 1, 1).toISOString().slice(0, 10);
+      const to = new Date(y, m, 0).toISOString().slice(0, 10);
+      let q = supabase.from("transactions")
+        .select("id,date,concept,type,amount,currency,account,is_pending,category:categories(code,name),client:clients(name)")
+        .eq("workspace_id", workspaceId)
+        .gte("date", from).lte("date", to)
+        .order("date", { ascending: false }).limit(300);
+      if (args.type) q = q.eq("type", args.type);
+      const { data } = await q;
+      return { ym, from, to, count: (data ?? []).length, transactions: data ?? [] };
+    }
+
 
     // ===== ACTIONS =====
     case "create_transaction": {
