@@ -283,7 +283,7 @@ function TxnPage() {
         </AlertDialogContent>
       </AlertDialog>
 
-      {ws && <TransactionDialog open={open} onOpenChange={setOpen} workspaceId={ws.id} />}
+      {ws && <TransactionDialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) setEditing(null); }} workspaceId={ws.id} transaction={editing} />}
     </AppShell>
   );
 }
