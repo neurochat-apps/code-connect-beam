@@ -8,12 +8,12 @@ import { chatFinanciero, executeAction, getChatAlerts } from "@/lib/ai.functions
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
-type PendingAction = { name: string; args: Record<string, any>; summary: string };
+type PendingAction = { name: string; args: Record<string, any>; summary: string; status?: "pending" | "done" | "cancelled" | "error"; error?: string };
 
 type Msg =
   | { role: "user"; content: string }
   | { role: "assistant"; content: string }
-  | { role: "pending"; action: PendingAction; resolved?: "done" | "cancelled" | "edited" };
+  | { role: "batch"; actions: PendingAction[] };
 
 export function AIChatDialog({
   open, onOpenChange, workspaceId,
