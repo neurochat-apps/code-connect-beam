@@ -32,7 +32,7 @@ export function fmtShortDate(d: string | Date): string {
   return new Intl.DateTimeFormat("es-CO", { day: "2-digit", month: "short" }).format(date);
 }
 
-export type Period = "today" | "week" | "month" | "quarter" | "year" | "all";
+export type Period = "today" | "week" | "month" | "last_month" | "quarter" | "year" | "all";
 
 function iso(d: Date) { return d.toISOString().slice(0, 10); }
 
@@ -44,6 +44,11 @@ export function periodRange(p: Period): { from: string; to: string } {
     case "today": break;
     case "week": from.setDate(now.getDate() - 7); break;
     case "month": from.setDate(1); break;
+    case "last_month": {
+      const start = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+      const end = new Date(now.getFullYear(), now.getMonth(), 0);
+      return { from: iso(start), to: iso(end) };
+    }
     case "quarter": from.setMonth(now.getMonth() - 3); break;
     case "year": from.setMonth(0); from.setDate(1); break;
     case "all": return { from: "1970-01-01", to };
