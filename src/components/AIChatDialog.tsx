@@ -211,19 +211,82 @@ export function AIChatDialog({
                             {statusLabel ? (
                               <div className="text-xs text-muted-foreground">{statusLabel}</div>
                             ) : (
-                              <div className="flex gap-2 pt-1">
-                                <Button size="sm" onClick={() => runAction(i, j)} disabled={loading}>
-                                  <Check className="size-3 mr-1" /> Confirmar
-                                </Button>
-                                <Button size="sm" variant="ghost" onClick={() => cancelAction(i, j)} disabled={loading}>
-                                  <X className="size-3 mr-1" /> Cancelar
-                                </Button>
-                              </div>
+                              <>
+                                {a.editing && a.name === "create_transaction" && (
+                                  <div className="grid grid-cols-2 gap-2 pt-2 pb-1">
+                                    <div className="space-y-1">
+                                      <Label className="text-[10px]">Tipo</Label>
+                                      <Select value={a.args.type ?? "egreso"} onValueChange={(v) => updateArg(i, j, "type", v)}>
+                                        <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+                                        <SelectContent>
+                                          <SelectItem value="ingreso">Ingreso</SelectItem>
+                                          <SelectItem value="egreso">Egreso</SelectItem>
+                                        </SelectContent>
+                                      </Select>
+                                    </div>
+                                    <div className="space-y-1">
+                                      <Label className="text-[10px]">Moneda</Label>
+                                      <Select value={a.args.currency ?? "COP"} onValueChange={(v) => updateArg(i, j, "currency", v)}>
+                                        <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+                                        <SelectContent>
+                                          <SelectItem value="COP">COP</SelectItem>
+                                          <SelectItem value="USD">USD</SelectItem>
+                                        </SelectContent>
+                                      </Select>
+                                    </div>
+                                    <div className="space-y-1">
+                                      <Label className="text-[10px]">Monto</Label>
+                                      <Input className="h-8 text-xs" type="number" value={a.args.amount ?? ""} onChange={(e) => updateArg(i, j, "amount", parseFloat(e.target.value) || 0)} />
+                                    </div>
+                                    <div className="space-y-1">
+                                      <Label className="text-[10px]">Fecha</Label>
+                                      <Input className="h-8 text-xs" type="date" value={a.args.date ?? ""} onChange={(e) => updateArg(i, j, "date", e.target.value)} />
+                                    </div>
+                                    <div className="col-span-2 space-y-1">
+                                      <Label className="text-[10px]">Concepto</Label>
+                                      <Input className="h-8 text-xs" value={a.args.concept ?? ""} onChange={(e) => updateArg(i, j, "concept", e.target.value)} />
+                                    </div>
+                                    <div className="space-y-1">
+                                      <Label className="text-[10px]">Categoría (código)</Label>
+                                      <Input className="h-8 text-xs" value={a.args.category_code ?? ""} onChange={(e) => updateArg(i, j, "category_code", e.target.value)} placeholder="00001..00017" />
+                                    </div>
+                                    <div className="space-y-1">
+                                      <Label className="text-[10px]">Cuenta</Label>
+                                      <Select value={a.args.account ?? "bancolombia"} onValueChange={(v) => updateArg(i, j, "account", v)}>
+                                        <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+                                        <SelectContent>
+                                          <SelectItem value="bancolombia">Bancolombia</SelectItem>
+                                          <SelectItem value="stripe">Stripe</SelectItem>
+                                          <SelectItem value="chase">Chase</SelectItem>
+                                          <SelectItem value="efectivo">Efectivo</SelectItem>
+                                          <SelectItem value="otra">Otra</SelectItem>
+                                        </SelectContent>
+                                      </Select>
+                                    </div>
+                                    <div className="col-span-2 space-y-1">
+                                      <Label className="text-[10px]">Cliente (opcional)</Label>
+                                      <Input className="h-8 text-xs" value={a.args.client_name ?? ""} onChange={(e) => updateArg(i, j, "client_name", e.target.value)} />
+                                    </div>
+                                  </div>
+                                )}
+                                <div className="flex gap-2 pt-1 flex-wrap">
+                                  <Button size="sm" onClick={() => runAction(i, j)} disabled={loading}>
+                                    <Check className="size-3 mr-1" /> Confirmar
+                                  </Button>
+                                  <Button size="sm" variant="outline" onClick={() => toggleEdit(i, j)} disabled={loading}>
+                                    <Pencil className="size-3 mr-1" /> {a.editing ? "Listo" : "Editar"}
+                                  </Button>
+                                  <Button size="sm" variant="ghost" onClick={() => cancelAction(i, j)} disabled={loading}>
+                                    <X className="size-3 mr-1" /> Cancelar
+                                  </Button>
+                                </div>
+                              </>
                             )}
                           </div>
                         );
                       })}
                     </div>
+
                     {isMulti && pendingCount > 0 && (
                       <div className="flex gap-2 pt-1 border-t border-border/60 mt-2">
                         <Button size="sm" onClick={() => confirmAll(i)} disabled={loading}>
