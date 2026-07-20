@@ -140,6 +140,28 @@ export function AIChatDialog({
     updateBatch(msgIdx, (acts) => acts.map((x) => (x.status === "pending" ? { ...x, status: "cancelled" } : x)));
   }
 
+  function toggleEdit(msgIdx: number, actIdx: number) {
+    updateBatch(msgIdx, (acts) => acts.map((x, i) => (i === actIdx ? { ...x, editing: !x.editing } : x)));
+  }
+
+  function updateArg(msgIdx: number, actIdx: number, key: string, value: any) {
+    updateBatch(msgIdx, (acts) => acts.map((x, i) => {
+      if (i !== actIdx) return x;
+      const newArgs = { ...x.args, [key]: value };
+      return { ...x, args: newArgs, summary: rebuildSummary(x.name, newArgs, x.summary) };
+    }));
+  }
+
+  function rebuildSummary(name: string, args: any, fallback: string) {
+    if (name === "create_transaction") {
+      const cat = args.category_code ? ` · cat ${args.category_code}` : "";
+      const cli = args.client_name ? ` · ${args.client_name}` : "";
+      return `${args.type === "ingreso" ? "Ingreso" : "Egreso"} ${Number(args.amount ?? 0).toLocaleString("es-CO")} ${args.currency ?? "COP"} — ${args.concept ?? ""}${cat}${cli} · ${args.account ?? "bancolombia"} · ${args.date ?? "hoy"}`;
+    }
+    return fallback;
+  }
+
+
 
 
   return (
