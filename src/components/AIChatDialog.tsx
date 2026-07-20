@@ -3,12 +3,14 @@ import { useServerFn } from "@tanstack/react-start";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Send, Brain, Mic, MicOff, Check, X, AlertTriangle, Info, CheckCircle2 } from "lucide-react";
+import { Send, Brain, Mic, MicOff, Check, X, AlertTriangle, Info, CheckCircle2, Pencil } from "lucide-react";
 import { chatFinanciero, executeAction, getChatAlerts } from "@/lib/ai.functions";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
-type PendingAction = { name: string; args: Record<string, any>; summary: string; status?: "pending" | "done" | "cancelled" | "error"; error?: string };
+type PendingAction = { name: string; args: Record<string, any>; summary: string; status?: "pending" | "done" | "cancelled" | "error"; error?: string; editing?: boolean };
 
 type Msg =
   | { role: "user"; content: string }
@@ -68,15 +70,21 @@ export function AIChatDialog({
     const msg = (textOverride ?? input).trim();
     if (!msg || !workspaceId || loading) return;
     if (!textOverride) setInput("");
-    const history = messages
-      .filter((m): m is Extract<Msg, { role: "user" | "assistant" }> => m.role === "user" || m.role === "assistant")
-      .slice(-10)
-      .map((m) => ({ role: m.role, content: m.content }));
+    const history: Array<{ role: "user" | "assistant"; content: string }> = [];
+    for (const m of messages) {
+      if (m.role === "user") history.push({ role: "user", content: m.content });
+      else if (m.role === "assistant") history.push({ role: "assistant", content: m.content });
+      else if (m.role === "batch") {
+        const done = m.actions.filter((a) => a.status === "done");
+        if (done.length) history.push({ role: "assistant", content: done.map((a) => `✅ Registrado: ${a.summary}`).join("\n") });
+      }
+    }
+    const trimmedHistory = history.slice(-12);
     const next: Msg[] = [...messages, { role: "user", content: msg }];
     setMessages(next);
     setLoading(true);
     try {
-      const res = await chatFn({ data: { workspace_id: workspaceId, message: msg, history } });
+      const res = await chatFn({ data: { workspace_id: workspaceId, message: msg, history: trimmedHistory } });
       if (res.type === "confirm") {
         const batch: Msg = {
           role: "batch",
@@ -132,6 +140,28 @@ export function AIChatDialog({
     updateBatch(msgIdx, (acts) => acts.map((x) => (x.status === "pending" ? { ...x, status: "cancelled" } : x)));
   }
 
+  function toggleEdit(msgIdx: number, actIdx: number) {
+    updateBatch(msgIdx, (acts) => acts.map((x, i) => (i === actIdx ? { ...x, editing: !x.editing } : x)));
+  }
+
+  function updateArg(msgIdx: number, actIdx: number, key: string, value: any) {
+    updateBatch(msgIdx, (acts) => acts.map((x, i) => {
+      if (i !== actIdx) return x;
+      const newArgs = { ...x.args, [key]: value };
+      return { ...x, args: newArgs, summary: rebuildSummary(x.name, newArgs, x.summary) };
+    }));
+  }
+
+  function rebuildSummary(name: string, args: any, fallback: string) {
+    if (name === "create_transaction") {
+      const cat = args.category_code ? ` · cat ${args.category_code}` : "";
+      const cli = args.client_name ? ` · ${args.client_name}` : "";
+      return `${args.type === "ingreso" ? "Ingreso" : "Egreso"} ${Number(args.amount ?? 0).toLocaleString("es-CO")} ${args.currency ?? "COP"} — ${args.concept ?? ""}${cat}${cli} · ${args.account ?? "bancolombia"} · ${args.date ?? "hoy"}`;
+    }
+    return fallback;
+  }
+
+
 
 
   return (
@@ -181,19 +211,82 @@ export function AIChatDialog({
                             {statusLabel ? (
                               <div className="text-xs text-muted-foreground">{statusLabel}</div>
                             ) : (
-                              <div className="flex gap-2 pt-1">
-                                <Button size="sm" onClick={() => runAction(i, j)} disabled={loading}>
-                                  <Check className="size-3 mr-1" /> Confirmar
-                                </Button>
-                                <Button size="sm" variant="ghost" onClick={() => cancelAction(i, j)} disabled={loading}>
-                                  <X className="size-3 mr-1" /> Cancelar
-                                </Button>
-                              </div>
+                              <>
+                                {a.editing && a.name === "create_transaction" && (
+                                  <div className="grid grid-cols-2 gap-2 pt-2 pb-1">
+                                    <div className="space-y-1">
+                                      <Label className="text-[10px]">Tipo</Label>
+                                      <Select value={a.args.type ?? "egreso"} onValueChange={(v) => updateArg(i, j, "type", v)}>
+                                        <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+                                        <SelectContent>
+                                          <SelectItem value="ingreso">Ingreso</SelectItem>
+                                          <SelectItem value="egreso">Egreso</SelectItem>
+                                        </SelectContent>
+                                      </Select>
+                                    </div>
+                                    <div className="space-y-1">
+                                      <Label className="text-[10px]">Moneda</Label>
+                                      <Select value={a.args.currency ?? "COP"} onValueChange={(v) => updateArg(i, j, "currency", v)}>
+                                        <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+                                        <SelectContent>
+                                          <SelectItem value="COP">COP</SelectItem>
+                                          <SelectItem value="USD">USD</SelectItem>
+                                        </SelectContent>
+                                      </Select>
+                                    </div>
+                                    <div className="space-y-1">
+                                      <Label className="text-[10px]">Monto</Label>
+                                      <Input className="h-8 text-xs" type="number" value={a.args.amount ?? ""} onChange={(e) => updateArg(i, j, "amount", parseFloat(e.target.value) || 0)} />
+                                    </div>
+                                    <div className="space-y-1">
+                                      <Label className="text-[10px]">Fecha</Label>
+                                      <Input className="h-8 text-xs" type="date" value={a.args.date ?? ""} onChange={(e) => updateArg(i, j, "date", e.target.value)} />
+                                    </div>
+                                    <div className="col-span-2 space-y-1">
+                                      <Label className="text-[10px]">Concepto</Label>
+                                      <Input className="h-8 text-xs" value={a.args.concept ?? ""} onChange={(e) => updateArg(i, j, "concept", e.target.value)} />
+                                    </div>
+                                    <div className="space-y-1">
+                                      <Label className="text-[10px]">Categoría (código)</Label>
+                                      <Input className="h-8 text-xs" value={a.args.category_code ?? ""} onChange={(e) => updateArg(i, j, "category_code", e.target.value)} placeholder="00001..00017" />
+                                    </div>
+                                    <div className="space-y-1">
+                                      <Label className="text-[10px]">Cuenta</Label>
+                                      <Select value={a.args.account ?? "bancolombia"} onValueChange={(v) => updateArg(i, j, "account", v)}>
+                                        <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+                                        <SelectContent>
+                                          <SelectItem value="bancolombia">Bancolombia</SelectItem>
+                                          <SelectItem value="stripe">Stripe</SelectItem>
+                                          <SelectItem value="chase">Chase</SelectItem>
+                                          <SelectItem value="efectivo">Efectivo</SelectItem>
+                                          <SelectItem value="otra">Otra</SelectItem>
+                                        </SelectContent>
+                                      </Select>
+                                    </div>
+                                    <div className="col-span-2 space-y-1">
+                                      <Label className="text-[10px]">Cliente (opcional)</Label>
+                                      <Input className="h-8 text-xs" value={a.args.client_name ?? ""} onChange={(e) => updateArg(i, j, "client_name", e.target.value)} />
+                                    </div>
+                                  </div>
+                                )}
+                                <div className="flex gap-2 pt-1 flex-wrap">
+                                  <Button size="sm" onClick={() => runAction(i, j)} disabled={loading}>
+                                    <Check className="size-3 mr-1" /> Confirmar
+                                  </Button>
+                                  <Button size="sm" variant="outline" onClick={() => toggleEdit(i, j)} disabled={loading}>
+                                    <Pencil className="size-3 mr-1" /> {a.editing ? "Listo" : "Editar"}
+                                  </Button>
+                                  <Button size="sm" variant="ghost" onClick={() => cancelAction(i, j)} disabled={loading}>
+                                    <X className="size-3 mr-1" /> Cancelar
+                                  </Button>
+                                </div>
+                              </>
                             )}
                           </div>
                         );
                       })}
                     </div>
+
                     {isMulti && pendingCount > 0 && (
                       <div className="flex gap-2 pt-1 border-t border-border/60 mt-2">
                         <Button size="sm" onClick={() => confirmAll(i)} disabled={loading}>
