@@ -70,15 +70,21 @@ export function AIChatDialog({
     const msg = (textOverride ?? input).trim();
     if (!msg || !workspaceId || loading) return;
     if (!textOverride) setInput("");
-    const history = messages
-      .filter((m): m is Extract<Msg, { role: "user" | "assistant" }> => m.role === "user" || m.role === "assistant")
-      .slice(-10)
-      .map((m) => ({ role: m.role, content: m.content }));
+    const history: Array<{ role: "user" | "assistant"; content: string }> = [];
+    for (const m of messages) {
+      if (m.role === "user") history.push({ role: "user", content: m.content });
+      else if (m.role === "assistant") history.push({ role: "assistant", content: m.content });
+      else if (m.role === "batch") {
+        const done = m.actions.filter((a) => a.status === "done");
+        if (done.length) history.push({ role: "assistant", content: done.map((a) => `✅ Registrado: ${a.summary}`).join("\n") });
+      }
+    }
+    const trimmedHistory = history.slice(-12);
     const next: Msg[] = [...messages, { role: "user", content: msg }];
     setMessages(next);
     setLoading(true);
     try {
-      const res = await chatFn({ data: { workspace_id: workspaceId, message: msg, history } });
+      const res = await chatFn({ data: { workspace_id: workspaceId, message: msg, history: trimmedHistory } });
       if (res.type === "confirm") {
         const batch: Msg = {
           role: "batch",
