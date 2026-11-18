@@ -1,4 +1,5 @@
 import { QueryClient, QueryClientProvider, useQueryClient } from "@tanstack/react-query";
+import type { ErrorComponentProps } from "@tanstack/react-router";
 import {
   Outlet,
   Link,
@@ -36,7 +37,7 @@ function NotFoundComponent() {
   );
 }
 
-function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
+function ErrorComponent({ error, reset }: ErrorComponentProps) {
   console.error(error);
   const router = useRouter();
   useEffect(() => {
@@ -50,7 +51,7 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
           Hubo un error al cargar
         </h1>
         <p className="mt-2 text-sm text-muted-foreground">
-          {error.message || "Algo salió mal. Intenta refrescar."}
+          {(error as Error).message || "Algo salió mal. Intenta refrescar."}
         </p>
         <div className="mt-6 flex flex-wrap justify-center gap-2">
           <button

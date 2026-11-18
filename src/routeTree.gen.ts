@@ -9,38 +9,35 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as SignupRouteImport } from './routes/signup'
-import { Route as ResetPasswordRouteImport } from './routes/reset-password'
-import { Route as LoginRouteImport } from './routes/login'
-import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
-import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as AcceptInviteTokenRouteImport } from './routes/accept-invite.$token'
-import { Route as AuthenticatedTransaccionesRouteImport } from './routes/_authenticated/transacciones'
-import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
+import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
+import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
+import { Route as LoginRouteImport } from './routes/login'
+import { Route as McpRouteImport } from './routes/mcp'
+import { Route as ResetPasswordRouteImport } from './routes/reset-password'
+import { Route as SignupRouteImport } from './routes/signup'
+import { Route as Char91DotwellKnownChar93OauthProtectedResourceRouteImport } from './routes/[.well-known]/oauth-protected-resource'
 import { Route as AuthenticatedCarteraRouteImport } from './routes/_authenticated/cartera'
-import { Route as AuthenticatedSettingsTeamRouteImport } from './routes/_authenticated/settings/team'
-import { Route as AuthenticatedSettingsImportRouteImport } from './routes/_authenticated/settings/import'
-import { Route as AuthenticatedSettingsGeneralRouteImport } from './routes/_authenticated/settings/general'
-import { Route as AuthenticatedSettingsFixedCostsRouteImport } from './routes/_authenticated/settings/fixed-costs'
+import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
+import { Route as AuthenticatedTransaccionesRouteImport } from './routes/_authenticated/transacciones'
+import { Route as AcceptInviteTokenRouteImport } from './routes/accept-invite.$token'
+import { Route as DotlovableOauthConsentRouteImport } from './routes/[.]lovable.oauth.consent'
 import { Route as AuthenticatedSettingsCatalogRouteImport } from './routes/_authenticated/settings/catalog'
-import { Route as ApiPublicTelegramWebhookRouteImport } from './routes/api/public/telegram/webhook'
-import { Route as ApiPublicPaymentsWebhookRouteImport } from './routes/api/public/payments/webhook'
+import { Route as AuthenticatedSettingsFixedCostsRouteImport } from './routes/_authenticated/settings/fixed-costs'
+import { Route as AuthenticatedSettingsGeneralRouteImport } from './routes/_authenticated/settings/general'
+import { Route as AuthenticatedSettingsImportRouteImport } from './routes/_authenticated/settings/import'
+import { Route as AuthenticatedSettingsTeamRouteImport } from './routes/_authenticated/settings/team'
 import { Route as ApiPublicHooksMonthlyCarryoverRouteImport } from './routes/api/public/hooks/monthly-carryover'
+import { Route as ApiPublicPaymentsWebhookRouteImport } from './routes/api/public/payments/webhook'
+import { Route as ApiPublicTelegramWebhookRouteImport } from './routes/api/public/telegram/webhook'
 
-const SignupRoute = SignupRouteImport.update({
-  id: '/signup',
-  path: '/signup',
+const IndexRoute = IndexRouteImport.update({
+  id: '/',
+  path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ResetPasswordRoute = ResetPasswordRouteImport.update({
-  id: '/reset-password',
-  path: '/reset-password',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const LoginRoute = LoginRouteImport.update({
-  id: '/login',
-  path: '/login',
+const AuthenticatedRoute = AuthenticatedRouteImport.update({
+  id: '/_authenticated',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ForgotPasswordRoute = ForgotPasswordRouteImport.update({
@@ -48,19 +45,41 @@ const ForgotPasswordRoute = ForgotPasswordRouteImport.update({
   path: '/forgot-password',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AuthenticatedRoute = AuthenticatedRouteImport.update({
-  id: '/_authenticated',
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
   getParentRoute: () => rootRouteImport,
 } as any)
-const IndexRoute = IndexRouteImport.update({
-  id: '/',
-  path: '/',
+const McpRoute = McpRouteImport.update({
+  id: '/mcp',
+  path: '/mcp',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AcceptInviteTokenRoute = AcceptInviteTokenRouteImport.update({
-  id: '/accept-invite/$token',
-  path: '/accept-invite/$token',
+const ResetPasswordRoute = ResetPasswordRouteImport.update({
+  id: '/reset-password',
+  path: '/reset-password',
   getParentRoute: () => rootRouteImport,
+} as any)
+const SignupRoute = SignupRouteImport.update({
+  id: '/signup',
+  path: '/signup',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const Char91DotwellKnownChar93OauthProtectedResourceRoute =
+  Char91DotwellKnownChar93OauthProtectedResourceRouteImport.update({
+    id: '/.well-known/oauth-protected-resource',
+    path: '/.well-known/oauth-protected-resource',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const AuthenticatedCarteraRoute = AuthenticatedCarteraRouteImport.update({
+  id: '/cartera',
+  path: '/cartera',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
+  id: '/dashboard',
+  path: '/dashboard',
+  getParentRoute: () => AuthenticatedRoute,
 } as any)
 const AuthenticatedTransaccionesRoute =
   AuthenticatedTransaccionesRouteImport.update({
@@ -68,32 +87,20 @@ const AuthenticatedTransaccionesRoute =
     path: '/transacciones',
     getParentRoute: () => AuthenticatedRoute,
   } as any)
-const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
-  id: '/dashboard',
-  path: '/dashboard',
-  getParentRoute: () => AuthenticatedRoute,
+const AcceptInviteTokenRoute = AcceptInviteTokenRouteImport.update({
+  id: '/accept-invite/$token',
+  path: '/accept-invite/$token',
+  getParentRoute: () => rootRouteImport,
 } as any)
-const AuthenticatedCarteraRoute = AuthenticatedCarteraRouteImport.update({
-  id: '/cartera',
-  path: '/cartera',
-  getParentRoute: () => AuthenticatedRoute,
+const DotlovableOauthConsentRoute = DotlovableOauthConsentRouteImport.update({
+  id: '/.lovable/oauth/consent',
+  path: '/.lovable/oauth/consent',
+  getParentRoute: () => rootRouteImport,
 } as any)
-const AuthenticatedSettingsTeamRoute =
-  AuthenticatedSettingsTeamRouteImport.update({
-    id: '/settings/team',
-    path: '/settings/team',
-    getParentRoute: () => AuthenticatedRoute,
-  } as any)
-const AuthenticatedSettingsImportRoute =
-  AuthenticatedSettingsImportRouteImport.update({
-    id: '/settings/import',
-    path: '/settings/import',
-    getParentRoute: () => AuthenticatedRoute,
-  } as any)
-const AuthenticatedSettingsGeneralRoute =
-  AuthenticatedSettingsGeneralRouteImport.update({
-    id: '/settings/general',
-    path: '/settings/general',
+const AuthenticatedSettingsCatalogRoute =
+  AuthenticatedSettingsCatalogRouteImport.update({
+    id: '/settings/catalog',
+    path: '/settings/catalog',
     getParentRoute: () => AuthenticatedRoute,
   } as any)
 const AuthenticatedSettingsFixedCostsRoute =
@@ -102,16 +109,28 @@ const AuthenticatedSettingsFixedCostsRoute =
     path: '/settings/fixed-costs',
     getParentRoute: () => AuthenticatedRoute,
   } as any)
-const AuthenticatedSettingsCatalogRoute =
-  AuthenticatedSettingsCatalogRouteImport.update({
-    id: '/settings/catalog',
-    path: '/settings/catalog',
+const AuthenticatedSettingsGeneralRoute =
+  AuthenticatedSettingsGeneralRouteImport.update({
+    id: '/settings/general',
+    path: '/settings/general',
     getParentRoute: () => AuthenticatedRoute,
   } as any)
-const ApiPublicTelegramWebhookRoute =
-  ApiPublicTelegramWebhookRouteImport.update({
-    id: '/api/public/telegram/webhook',
-    path: '/api/public/telegram/webhook',
+const AuthenticatedSettingsImportRoute =
+  AuthenticatedSettingsImportRouteImport.update({
+    id: '/settings/import',
+    path: '/settings/import',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
+const AuthenticatedSettingsTeamRoute =
+  AuthenticatedSettingsTeamRouteImport.update({
+    id: '/settings/team',
+    path: '/settings/team',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
+const ApiPublicHooksMonthlyCarryoverRoute =
+  ApiPublicHooksMonthlyCarryoverRouteImport.update({
+    id: '/api/public/hooks/monthly-carryover',
+    path: '/api/public/hooks/monthly-carryover',
     getParentRoute: () => rootRouteImport,
   } as any)
 const ApiPublicPaymentsWebhookRoute =
@@ -120,10 +139,10 @@ const ApiPublicPaymentsWebhookRoute =
     path: '/api/public/payments/webhook',
     getParentRoute: () => rootRouteImport,
   } as any)
-const ApiPublicHooksMonthlyCarryoverRoute =
-  ApiPublicHooksMonthlyCarryoverRouteImport.update({
-    id: '/api/public/hooks/monthly-carryover',
-    path: '/api/public/hooks/monthly-carryover',
+const ApiPublicTelegramWebhookRoute =
+  ApiPublicTelegramWebhookRouteImport.update({
+    id: '/api/public/telegram/webhook',
+    path: '/api/public/telegram/webhook',
     getParentRoute: () => rootRouteImport,
   } as any)
 
@@ -131,12 +150,15 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/forgot-password': typeof ForgotPasswordRoute
   '/login': typeof LoginRoute
+  '/mcp': typeof McpRoute
   '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
+  '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
   '/cartera': typeof AuthenticatedCarteraRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/transacciones': typeof AuthenticatedTransaccionesRoute
   '/accept-invite/$token': typeof AcceptInviteTokenRoute
+  '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
   '/settings/catalog': typeof AuthenticatedSettingsCatalogRoute
   '/settings/fixed-costs': typeof AuthenticatedSettingsFixedCostsRoute
   '/settings/general': typeof AuthenticatedSettingsGeneralRoute
@@ -150,12 +172,15 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/forgot-password': typeof ForgotPasswordRoute
   '/login': typeof LoginRoute
+  '/mcp': typeof McpRoute
   '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
+  '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
   '/cartera': typeof AuthenticatedCarteraRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/transacciones': typeof AuthenticatedTransaccionesRoute
   '/accept-invite/$token': typeof AcceptInviteTokenRoute
+  '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
   '/settings/catalog': typeof AuthenticatedSettingsCatalogRoute
   '/settings/fixed-costs': typeof AuthenticatedSettingsFixedCostsRoute
   '/settings/general': typeof AuthenticatedSettingsGeneralRoute
@@ -171,12 +196,15 @@ export interface FileRoutesById {
   '/_authenticated': typeof AuthenticatedRouteWithChildren
   '/forgot-password': typeof ForgotPasswordRoute
   '/login': typeof LoginRoute
+  '/mcp': typeof McpRoute
   '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
+  '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
   '/_authenticated/cartera': typeof AuthenticatedCarteraRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/transacciones': typeof AuthenticatedTransaccionesRoute
   '/accept-invite/$token': typeof AcceptInviteTokenRoute
+  '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
   '/_authenticated/settings/catalog': typeof AuthenticatedSettingsCatalogRoute
   '/_authenticated/settings/fixed-costs': typeof AuthenticatedSettingsFixedCostsRoute
   '/_authenticated/settings/general': typeof AuthenticatedSettingsGeneralRoute
@@ -192,12 +220,15 @@ export interface FileRouteTypes {
     | '/'
     | '/forgot-password'
     | '/login'
+    | '/mcp'
     | '/reset-password'
     | '/signup'
+    | '/.well-known/oauth-protected-resource'
     | '/cartera'
     | '/dashboard'
     | '/transacciones'
     | '/accept-invite/$token'
+    | '/.lovable/oauth/consent'
     | '/settings/catalog'
     | '/settings/fixed-costs'
     | '/settings/general'
@@ -211,12 +242,15 @@ export interface FileRouteTypes {
     | '/'
     | '/forgot-password'
     | '/login'
+    | '/mcp'
     | '/reset-password'
     | '/signup'
+    | '/.well-known/oauth-protected-resource'
     | '/cartera'
     | '/dashboard'
     | '/transacciones'
     | '/accept-invite/$token'
+    | '/.lovable/oauth/consent'
     | '/settings/catalog'
     | '/settings/fixed-costs'
     | '/settings/general'
@@ -231,12 +265,15 @@ export interface FileRouteTypes {
     | '/_authenticated'
     | '/forgot-password'
     | '/login'
+    | '/mcp'
     | '/reset-password'
     | '/signup'
+    | '/.well-known/oauth-protected-resource'
     | '/_authenticated/cartera'
     | '/_authenticated/dashboard'
     | '/_authenticated/transacciones'
     | '/accept-invite/$token'
+    | '/.lovable/oauth/consent'
     | '/_authenticated/settings/catalog'
     | '/_authenticated/settings/fixed-costs'
     | '/_authenticated/settings/general'
@@ -252,9 +289,12 @@ export interface RootRouteChildren {
   AuthenticatedRoute: typeof AuthenticatedRouteWithChildren
   ForgotPasswordRoute: typeof ForgotPasswordRoute
   LoginRoute: typeof LoginRoute
+  McpRoute: typeof McpRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   SignupRoute: typeof SignupRoute
+  Char91DotwellKnownChar93OauthProtectedResourceRoute: typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
   AcceptInviteTokenRoute: typeof AcceptInviteTokenRoute
+  DotlovableOauthConsentRoute: typeof DotlovableOauthConsentRoute
   ApiPublicHooksMonthlyCarryoverRoute: typeof ApiPublicHooksMonthlyCarryoverRoute
   ApiPublicPaymentsWebhookRoute: typeof ApiPublicPaymentsWebhookRoute
   ApiPublicTelegramWebhookRoute: typeof ApiPublicTelegramWebhookRoute
@@ -262,32 +302,11 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/signup': {
-      id: '/signup'
-      path: '/signup'
-      fullPath: '/signup'
-      preLoaderRoute: typeof SignupRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/reset-password': {
-      id: '/reset-password'
-      path: '/reset-password'
-      fullPath: '/reset-password'
-      preLoaderRoute: typeof ResetPasswordRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/login': {
-      id: '/login'
-      path: '/login'
-      fullPath: '/login'
-      preLoaderRoute: typeof LoginRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/forgot-password': {
-      id: '/forgot-password'
-      path: '/forgot-password'
-      fullPath: '/forgot-password'
-      preLoaderRoute: typeof ForgotPasswordRouteImport
+    '/': {
+      id: '/'
+      path: '/'
+      fullPath: '/'
+      preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated': {
@@ -297,25 +316,53 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/': {
-      id: '/'
-      path: '/'
-      fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
+    '/forgot-password': {
+      id: '/forgot-password'
+      path: '/forgot-password'
+      fullPath: '/forgot-password'
+      preLoaderRoute: typeof ForgotPasswordRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/accept-invite/$token': {
-      id: '/accept-invite/$token'
-      path: '/accept-invite/$token'
-      fullPath: '/accept-invite/$token'
-      preLoaderRoute: typeof AcceptInviteTokenRouteImport
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/_authenticated/transacciones': {
-      id: '/_authenticated/transacciones'
-      path: '/transacciones'
-      fullPath: '/transacciones'
-      preLoaderRoute: typeof AuthenticatedTransaccionesRouteImport
+    '/mcp': {
+      id: '/mcp'
+      path: '/mcp'
+      fullPath: '/mcp'
+      preLoaderRoute: typeof McpRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/reset-password': {
+      id: '/reset-password'
+      path: '/reset-password'
+      fullPath: '/reset-password'
+      preLoaderRoute: typeof ResetPasswordRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/signup': {
+      id: '/signup'
+      path: '/signup'
+      fullPath: '/signup'
+      preLoaderRoute: typeof SignupRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/.well-known/oauth-protected-resource': {
+      id: '/.well-known/oauth-protected-resource'
+      path: '/.well-known/oauth-protected-resource'
+      fullPath: '/.well-known/oauth-protected-resource'
+      preLoaderRoute: typeof Char91DotwellKnownChar93OauthProtectedResourceRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated/cartera': {
+      id: '/_authenticated/cartera'
+      path: '/cartera'
+      fullPath: '/cartera'
+      preLoaderRoute: typeof AuthenticatedCarteraRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
     '/_authenticated/dashboard': {
@@ -325,32 +372,32 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedDashboardRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
-    '/_authenticated/cartera': {
-      id: '/_authenticated/cartera'
-      path: '/cartera'
-      fullPath: '/cartera'
-      preLoaderRoute: typeof AuthenticatedCarteraRouteImport
+    '/_authenticated/transacciones': {
+      id: '/_authenticated/transacciones'
+      path: '/transacciones'
+      fullPath: '/transacciones'
+      preLoaderRoute: typeof AuthenticatedTransaccionesRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
-    '/_authenticated/settings/team': {
-      id: '/_authenticated/settings/team'
-      path: '/settings/team'
-      fullPath: '/settings/team'
-      preLoaderRoute: typeof AuthenticatedSettingsTeamRouteImport
-      parentRoute: typeof AuthenticatedRoute
+    '/accept-invite/$token': {
+      id: '/accept-invite/$token'
+      path: '/accept-invite/$token'
+      fullPath: '/accept-invite/$token'
+      preLoaderRoute: typeof AcceptInviteTokenRouteImport
+      parentRoute: typeof rootRouteImport
     }
-    '/_authenticated/settings/import': {
-      id: '/_authenticated/settings/import'
-      path: '/settings/import'
-      fullPath: '/settings/import'
-      preLoaderRoute: typeof AuthenticatedSettingsImportRouteImport
-      parentRoute: typeof AuthenticatedRoute
+    '/.lovable/oauth/consent': {
+      id: '/.lovable/oauth/consent'
+      path: '/.lovable/oauth/consent'
+      fullPath: '/.lovable/oauth/consent'
+      preLoaderRoute: typeof DotlovableOauthConsentRouteImport
+      parentRoute: typeof rootRouteImport
     }
-    '/_authenticated/settings/general': {
-      id: '/_authenticated/settings/general'
-      path: '/settings/general'
-      fullPath: '/settings/general'
-      preLoaderRoute: typeof AuthenticatedSettingsGeneralRouteImport
+    '/_authenticated/settings/catalog': {
+      id: '/_authenticated/settings/catalog'
+      path: '/settings/catalog'
+      fullPath: '/settings/catalog'
+      preLoaderRoute: typeof AuthenticatedSettingsCatalogRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
     '/_authenticated/settings/fixed-costs': {
@@ -360,18 +407,32 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedSettingsFixedCostsRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
-    '/_authenticated/settings/catalog': {
-      id: '/_authenticated/settings/catalog'
-      path: '/settings/catalog'
-      fullPath: '/settings/catalog'
-      preLoaderRoute: typeof AuthenticatedSettingsCatalogRouteImport
+    '/_authenticated/settings/general': {
+      id: '/_authenticated/settings/general'
+      path: '/settings/general'
+      fullPath: '/settings/general'
+      preLoaderRoute: typeof AuthenticatedSettingsGeneralRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
-    '/api/public/telegram/webhook': {
-      id: '/api/public/telegram/webhook'
-      path: '/api/public/telegram/webhook'
-      fullPath: '/api/public/telegram/webhook'
-      preLoaderRoute: typeof ApiPublicTelegramWebhookRouteImport
+    '/_authenticated/settings/import': {
+      id: '/_authenticated/settings/import'
+      path: '/settings/import'
+      fullPath: '/settings/import'
+      preLoaderRoute: typeof AuthenticatedSettingsImportRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/settings/team': {
+      id: '/_authenticated/settings/team'
+      path: '/settings/team'
+      fullPath: '/settings/team'
+      preLoaderRoute: typeof AuthenticatedSettingsTeamRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/api/public/hooks/monthly-carryover': {
+      id: '/api/public/hooks/monthly-carryover'
+      path: '/api/public/hooks/monthly-carryover'
+      fullPath: '/api/public/hooks/monthly-carryover'
+      preLoaderRoute: typeof ApiPublicHooksMonthlyCarryoverRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/public/payments/webhook': {
@@ -381,11 +442,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicPaymentsWebhookRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/public/hooks/monthly-carryover': {
-      id: '/api/public/hooks/monthly-carryover'
-      path: '/api/public/hooks/monthly-carryover'
-      fullPath: '/api/public/hooks/monthly-carryover'
-      preLoaderRoute: typeof ApiPublicHooksMonthlyCarryoverRouteImport
+    '/api/public/telegram/webhook': {
+      id: '/api/public/telegram/webhook'
+      path: '/api/public/telegram/webhook'
+      fullPath: '/api/public/telegram/webhook'
+      preLoaderRoute: typeof ApiPublicTelegramWebhookRouteImport
       parentRoute: typeof rootRouteImport
     }
   }
@@ -422,9 +483,13 @@ const rootRouteChildren: RootRouteChildren = {
   AuthenticatedRoute: AuthenticatedRouteWithChildren,
   ForgotPasswordRoute: ForgotPasswordRoute,
   LoginRoute: LoginRoute,
+  McpRoute: McpRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   SignupRoute: SignupRoute,
+  Char91DotwellKnownChar93OauthProtectedResourceRoute:
+    Char91DotwellKnownChar93OauthProtectedResourceRoute,
   AcceptInviteTokenRoute: AcceptInviteTokenRoute,
+  DotlovableOauthConsentRoute: DotlovableOauthConsentRoute,
   ApiPublicHooksMonthlyCarryoverRoute: ApiPublicHooksMonthlyCarryoverRoute,
   ApiPublicPaymentsWebhookRoute: ApiPublicPaymentsWebhookRoute,
   ApiPublicTelegramWebhookRoute: ApiPublicTelegramWebhookRoute,
@@ -432,3 +497,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}

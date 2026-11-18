@@ -1,0 +1,858 @@
+{
+  "version": 1,
+  "sdk_version": "3.5.0",
+  "path": "/mcp",
+  "auth": {
+    "type": "oauth",
+    "issuer": "https://cicgtjwgypksrnrvibku.supabase.co/auth/v1",
+    "accepted_audiences": [
+      "authenticated"
+    ]
+  },
+  "mcp": {
+    "server": {
+      "name": "neurofinanzas",
+      "version": "0.1.0",
+      "title": "Neurofinanzas"
+    },
+    "tools": [
+      {
+        "name": "get_period_summary",
+        "title": "Resumen del periodo",
+        "description": "Ingresos, egresos, utilidad y cartera de un rango (por defecto el mes actual).",
+        "annotations": {
+          "readOnlyHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "type": "object",
+          "properties": {
+            "from": {
+              "description": "YYYY-MM-DD",
+              "type": "string"
+            },
+            "to": {
+              "description": "YYYY-MM-DD",
+              "type": "string"
+            },
+            "workspace_id": {
+              "description": "Espacio de trabajo (opcional; por defecto el primero).",
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            }
+          },
+          "additionalProperties": false
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "list_pending_invoices",
+        "title": "Cartera pendiente",
+        "description": "Lista cobros pendientes de clientes.",
+        "annotations": {
+          "readOnlyHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "type": "object",
+          "properties": {
+            "workspace_id": {
+              "description": "Espacio de trabajo (opcional; por defecto el primero).",
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            }
+          },
+          "additionalProperties": false
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "get_category_breakdown",
+        "title": "Gastos por categoría",
+        "description": "Desglose por categoría del mes actual.",
+        "annotations": {
+          "readOnlyHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "type": "object",
+          "properties": {
+            "workspace_id": {
+              "description": "Espacio de trabajo (opcional; por defecto el primero).",
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            }
+          },
+          "additionalProperties": false
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "compare_months",
+        "title": "Comparar meses",
+        "description": "Compara el mes actual contra el anterior.",
+        "annotations": {
+          "readOnlyHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "type": "object",
+          "properties": {
+            "workspace_id": {
+              "description": "Espacio de trabajo (opcional; por defecto el primero).",
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            }
+          },
+          "additionalProperties": false
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "list_categories",
+        "title": "Listar categorías",
+        "description": "Lista todas las categorías con su código.",
+        "annotations": {
+          "readOnlyHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "type": "object",
+          "properties": {
+            "workspace_id": {
+              "description": "Espacio de trabajo (opcional; por defecto el primero).",
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            }
+          },
+          "additionalProperties": false
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "list_transactions_by_month",
+        "title": "Transacciones del mes",
+        "description": "Lista transacciones de un mes (YYYY-MM).",
+        "annotations": {
+          "readOnlyHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "type": "object",
+          "properties": {
+            "ym": {
+              "description": "YYYY-MM",
+              "type": "string"
+            },
+            "type": {
+              "type": "string",
+              "enum": [
+                "ingreso",
+                "egreso",
+                "neutro"
+              ]
+            },
+            "workspace_id": {
+              "description": "Espacio de trabajo (opcional; por defecto el primero).",
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            }
+          },
+          "additionalProperties": false
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "get_account_balance",
+        "title": "Saldos por cuenta",
+        "description": "Saldo aproximado por cuenta (Bancolombia, Chase, Stripe, efectivo).",
+        "annotations": {
+          "readOnlyHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "type": "object",
+          "properties": {
+            "workspace_id": {
+              "description": "Espacio de trabajo (opcional; por defecto el primero).",
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            }
+          },
+          "additionalProperties": false
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "create_transaction",
+        "title": "Registrar transacción",
+        "description": "Crea un ingreso o egreso. Usa list_categories para elegir category_code.",
+        "annotations": {
+          "readOnlyHint": false,
+          "destructiveHint": false,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "enum": [
+                "ingreso",
+                "egreso"
+              ]
+            },
+            "amount": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            },
+            "currency": {
+              "type": "string",
+              "enum": [
+                "COP",
+                "USD"
+              ]
+            },
+            "concept": {
+              "type": "string",
+              "minLength": 1
+            },
+            "category_code": {
+              "type": "string"
+            },
+            "client_name": {
+              "type": "string"
+            },
+            "account": {
+              "type": "string",
+              "enum": [
+                "bancolombia",
+                "stripe",
+                "chase",
+                "efectivo",
+                "otra"
+              ]
+            },
+            "date": {
+              "description": "YYYY-MM-DD",
+              "type": "string"
+            },
+            "notes": {
+              "type": "string"
+            },
+            "workspace_id": {
+              "description": "Espacio de trabajo (opcional; por defecto el primero).",
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            }
+          },
+          "required": [
+            "type",
+            "amount",
+            "concept"
+          ],
+          "additionalProperties": false
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "create_usd_cop_transfer",
+        "title": "Transferencia USD→COP",
+        "description": "Registra un envío de dólares a Colombia como par emparejado (no duplica ingresos).",
+        "annotations": {
+          "readOnlyHint": false,
+          "destructiveHint": false,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "type": "object",
+          "properties": {
+            "amount_usd": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            },
+            "amount_cop": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            },
+            "from_account": {
+              "type": "string",
+              "enum": [
+                "stripe",
+                "chase",
+                "otra"
+              ]
+            },
+            "to_account": {
+              "type": "string",
+              "enum": [
+                "bancolombia",
+                "efectivo",
+                "otra"
+              ]
+            },
+            "date": {
+              "type": "string"
+            },
+            "concept": {
+              "type": "string"
+            },
+            "workspace_id": {
+              "description": "Espacio de trabajo (opcional; por defecto el primero).",
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            }
+          },
+          "required": [
+            "amount_usd",
+            "amount_cop"
+          ],
+          "additionalProperties": false
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "delete_transaction",
+        "title": "Eliminar transacción",
+        "description": "Elimina una transacción por id.",
+        "annotations": {
+          "readOnlyHint": false,
+          "destructiveHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "type": "object",
+          "properties": {
+            "transaction_id": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            },
+            "workspace_id": {
+              "description": "Espacio de trabajo (opcional; por defecto el primero).",
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            }
+          },
+          "required": [
+            "transaction_id"
+          ],
+          "additionalProperties": false
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "mark_transaction_paid",
+        "title": "Marcar como cobrada",
+        "description": "Marca una transacción pendiente como cobrada.",
+        "annotations": {
+          "readOnlyHint": false,
+          "destructiveHint": false,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "type": "object",
+          "properties": {
+            "transaction_id": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            },
+            "workspace_id": {
+              "description": "Espacio de trabajo (opcional; por defecto el primero).",
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            }
+          },
+          "required": [
+            "transaction_id"
+          ],
+          "additionalProperties": false
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "create_client",
+        "title": "Crear cliente",
+        "description": "Crea un nuevo cliente.",
+        "annotations": {
+          "readOnlyHint": false,
+          "destructiveHint": false,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "type": "object",
+          "properties": {
+            "name": {
+              "type": "string",
+              "minLength": 1
+            },
+            "type": {
+              "type": "string",
+              "enum": [
+                "recurrente",
+                "proyecto"
+              ]
+            },
+            "monthly_amount": {
+              "type": "number"
+            },
+            "currency": {
+              "type": "string",
+              "enum": [
+                "COP",
+                "USD"
+              ]
+            },
+            "contact": {
+              "type": "string"
+            },
+            "workspace_id": {
+              "description": "Espacio de trabajo (opcional; por defecto el primero).",
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            }
+          },
+          "required": [
+            "name"
+          ],
+          "additionalProperties": false
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "update_trm",
+        "title": "Actualizar TRM",
+        "description": "Actualiza la tasa USD→COP.",
+        "annotations": {
+          "readOnlyHint": false,
+          "destructiveHint": false,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "type": "object",
+          "properties": {
+            "rate": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            },
+            "workspace_id": {
+              "description": "Espacio de trabajo (opcional; por defecto el primero).",
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            }
+          },
+          "required": [
+            "rate"
+          ],
+          "additionalProperties": false
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "update_monthly_goal",
+        "title": "Actualizar meta mensual",
+        "description": "Actualiza la meta mensual de ingresos en COP.",
+        "annotations": {
+          "readOnlyHint": false,
+          "destructiveHint": false,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "type": "object",
+          "properties": {
+            "amount": {
+              "type": "number",
+              "minimum": 0
+            },
+            "workspace_id": {
+              "description": "Espacio de trabajo (opcional; por defecto el primero).",
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            }
+          },
+          "required": [
+            "amount"
+          ],
+          "additionalProperties": false
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "create_fixed_cost",
+        "title": "Crear costo fijo",
+        "description": "Crea un costo fijo recurrente.",
+        "annotations": {
+          "readOnlyHint": false,
+          "destructiveHint": false,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "type": "object",
+          "properties": {
+            "name": {
+              "type": "string",
+              "minLength": 1
+            },
+            "amount": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            },
+            "currency": {
+              "type": "string",
+              "enum": [
+                "COP",
+                "USD"
+              ]
+            },
+            "category": {
+              "type": "string",
+              "enum": [
+                "payroll",
+                "platform",
+                "other"
+              ]
+            },
+            "workspace_id": {
+              "description": "Espacio de trabajo (opcional; por defecto el primero).",
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            }
+          },
+          "required": [
+            "name",
+            "amount"
+          ],
+          "additionalProperties": false
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "list_workspaces",
+        "title": "Listar espacios de trabajo",
+        "description": "Lista los espacios de trabajo a los que tienes acceso (id, nombre, TRM, meta).",
+        "annotations": {
+          "readOnlyHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "type": "object",
+          "properties": {},
+          "additionalProperties": false
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "search_transactions",
+        "title": "Buscar transacciones",
+        "description": "Busca transacciones con filtros: fechas, tipo, cuenta, código de categoría, texto del concepto y pendientes.",
+        "annotations": {
+          "readOnlyHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "type": "object",
+          "properties": {
+            "from": {
+              "description": "YYYY-MM-DD",
+              "type": "string"
+            },
+            "to": {
+              "description": "YYYY-MM-DD",
+              "type": "string"
+            },
+            "type": {
+              "type": "string",
+              "enum": [
+                "ingreso",
+                "egreso",
+                "neutro"
+              ]
+            },
+            "account": {
+              "type": "string",
+              "enum": [
+                "bancolombia",
+                "stripe",
+                "chase",
+                "efectivo",
+                "otra"
+              ]
+            },
+            "category_code": {
+              "type": "string"
+            },
+            "text": {
+              "description": "Texto a buscar en el concepto",
+              "type": "string"
+            },
+            "pending_only": {
+              "type": "boolean"
+            },
+            "limit": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 500
+            },
+            "workspace_id": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            }
+          },
+          "additionalProperties": false
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "update_transaction",
+        "title": "Editar transacción",
+        "description": "Edita campos de una transacción existente (solo los que envíes).",
+        "annotations": {
+          "readOnlyHint": false,
+          "destructiveHint": false,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "type": "object",
+          "properties": {
+            "transaction_id": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            },
+            "concept": {
+              "type": "string"
+            },
+            "amount": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            },
+            "currency": {
+              "type": "string",
+              "enum": [
+                "COP",
+                "USD"
+              ]
+            },
+            "type": {
+              "type": "string",
+              "enum": [
+                "ingreso",
+                "egreso",
+                "neutro"
+              ]
+            },
+            "date": {
+              "type": "string"
+            },
+            "account": {
+              "type": "string",
+              "enum": [
+                "bancolombia",
+                "stripe",
+                "chase",
+                "efectivo",
+                "otra"
+              ]
+            },
+            "category_code": {
+              "type": "string"
+            },
+            "client_name": {
+              "type": "string"
+            },
+            "is_pending": {
+              "type": "boolean"
+            },
+            "notes": {
+              "type": "string"
+            },
+            "workspace_id": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            }
+          },
+          "required": [
+            "transaction_id"
+          ],
+          "additionalProperties": false
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "list_clients",
+        "title": "Listar clientes",
+        "description": "Lista clientes con monto mensual, estado y próxima fecha de pago.",
+        "annotations": {
+          "readOnlyHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "type": "object",
+          "properties": {
+            "workspace_id": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            }
+          },
+          "additionalProperties": false
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "update_client",
+        "title": "Editar cliente",
+        "description": "Edita datos de un cliente (solo los campos enviados).",
+        "annotations": {
+          "readOnlyHint": false,
+          "destructiveHint": false,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "type": "object",
+          "properties": {
+            "client_id": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            },
+            "name": {
+              "type": "string"
+            },
+            "monthly_amount": {
+              "type": "number"
+            },
+            "currency": {
+              "type": "string",
+              "enum": [
+                "COP",
+                "USD"
+              ]
+            },
+            "next_payment_date": {
+              "description": "YYYY-MM-DD",
+              "type": "string"
+            },
+            "contact": {
+              "type": "string"
+            },
+            "notes": {
+              "type": "string"
+            },
+            "workspace_id": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            }
+          },
+          "required": [
+            "client_id"
+          ],
+          "additionalProperties": false
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "list_fixed_costs",
+        "title": "Listar costos fijos",
+        "description": "Lista los costos fijos del espacio de trabajo.",
+        "annotations": {
+          "readOnlyHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "type": "object",
+          "properties": {
+            "workspace_id": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            }
+          },
+          "additionalProperties": false
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "create_category",
+        "title": "Crear categoría",
+        "description": "Crea una nueva categoría con el siguiente código disponible.",
+        "annotations": {
+          "readOnlyHint": false,
+          "destructiveHint": false,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "type": "object",
+          "properties": {
+            "name": {
+              "type": "string",
+              "minLength": 1
+            },
+            "type": {
+              "type": "string",
+              "enum": [
+                "ingreso",
+                "egreso",
+                "neutro"
+              ]
+            },
+            "workspace_id": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            }
+          },
+          "required": [
+            "name",
+            "type"
+          ],
+          "additionalProperties": false
+        },
+        "outputSchema": null
+      }
+    ]
+  }
+}

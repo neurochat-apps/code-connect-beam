@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
 export const Route = createFileRoute("/signup")({
-  validateSearch: (s) => ({ invite: (s.invite as string) || "" }),
+  validateSearch: (s: Record<string, unknown>): { invite?: string } => ({ invite: typeof s.invite === "string" ? s.invite : undefined }),
   component: SignupPage,
 });
 

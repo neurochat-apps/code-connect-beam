@@ -2,18 +2,27 @@ import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useEffect, useState, type FormEvent } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { oauthReturnPath } from "@/lib/oauth-return-path";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
 export const Route = createFileRoute("/login")({
-  validateSearch: (s) => ({ redirect: (s.redirect as string) || "/dashboard" }),
+  validateSearch: (s: Record<string, unknown>): { redirect?: string; next?: string } => ({
+    redirect: typeof s.redirect === "string" ? s.redirect : undefined,
+    next: typeof s.next === "string" ? s.next : undefined,
+  }),
   component: LoginPage,
 });
 
 function LoginPage() {
-  const { redirect } = Route.useSearch();
+  const search = Route.useSearch();
+  const redirect = search.next ? oauthReturnPath(search.next) : search.redirect ? oauthReturnPath(search.redirect) : "/dashboard";
   const navigate = useNavigate();
+  const goTo = (p: string, replace = false) => {
+    if (p.startsWith("/.lovable/")) { window.location.assign(p); return; }
+    navigate({ to: p as any, replace });
+  };
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -21,7 +30,7 @@ function LoginPage() {
   useEffect(() => {
     let alive = true;
     supabase.auth.getUser().then(({ data }) => {
-      if (alive && data.user) navigate({ to: redirect as any, replace: true });
+      if (alive && data.user) goTo(redirect, true);
     });
     return () => { alive = false; };
   }, [navigate, redirect]);
@@ -33,7 +42,7 @@ function LoginPage() {
     setLoading(false);
     if (error) { toast.error(error.message); return; }
     toast.success("Bienvenido");
-    navigate({ to: redirect as any });
+    goTo(redirect);
   }
 
   return (
