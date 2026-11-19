@@ -103,7 +103,7 @@ function ImportPage() {
     try {
       const r = await stripeSyncFn({ data: { workspace_id: wsId, since: stripeSince } });
       setStripeResult(r);
-      toast.success(`Stripe: ${r.inserted} filas nuevas`);
+      toast.success(`Stripe: ${r.inserted} filas nuevas · Préstamos: ${r.loanPayout ?? 0} desembolso(s), ${r.loanPaydown ?? 0} abono(s)`);
     } catch (e: any) { toast.error(e.message); }
     finally { setStripeLoading(false); }
   }
@@ -115,7 +115,7 @@ function ImportPage() {
     try {
       const r = await stripeResyncFn({ data: { workspace_id: wsId, since: stripeSince } });
       setStripeResult(r);
-      toast.success(`Stripe reimportado: ${r.inserted} filas nuevas (${r.deleted} eliminadas previas)`);
+      toast.success(`Stripe reimportado: ${r.inserted} filas nuevas (${r.deleted} eliminadas previas) · Préstamos: ${r.loanPayout ?? 0} desembolso(s), ${r.loanPaydown ?? 0} abono(s)`);
     } catch (e: any) { toast.error(e.message); }
     finally { setStripeLoading(false); }
   }
@@ -246,7 +246,7 @@ function ImportPage() {
                 )}
                 <p><b>{stripeResult.inserted}</b> filas insertadas · {stripeResult.skipped} omitidas · {stripeResult.scanned} eventos revisados</p>
                 <p className="text-xs text-muted-foreground">
-                  {stripeResult.gross ?? 0} ventas (${(stripeResult.grossUsd ?? 0).toFixed(2)} USD) · {stripeResult.fee ?? 0} comisiones (${(stripeResult.feeUsd ?? 0).toFixed(2)} USD) · {stripeResult.refund ?? 0} reembolsos · {stripeResult.adjustment ?? 0} cargos · {stripeResult.payouts ?? 0} transferencias (${(stripeResult.payoutUsd ?? 0).toFixed(2)} USD)
+                  {stripeResult.gross ?? 0} ventas (${(stripeResult.grossUsd ?? 0).toFixed(2)} USD) · {stripeResult.fee ?? 0} comisiones (${(stripeResult.feeUsd ?? 0).toFixed(2)} USD) · {stripeResult.refund ?? 0} reembolsos · {stripeResult.adjustment ?? 0} cargos · {stripeResult.payouts ?? 0} transferencias (${(stripeResult.payoutUsd ?? 0).toFixed(2)} USD) · Préstamos: {stripeResult.loanPayout ?? 0} desembolso(s), {stripeResult.loanPaydown ?? 0} abono(s)
                 </p>
               </div>
             )}

@@ -27,6 +27,7 @@ type Counters = {
   gross: number; fee: number; refund: number; adjustment: number;
   payouts: number; scanned: number; skipped: number; inserted: number;
   grossUsd: number; feeUsd: number; payoutUsd: number;
+  loanPayout: number; loanPaydown: number;
 };
 
 async function processStripeSince(
@@ -40,11 +41,13 @@ async function processStripeSince(
   const { data: cats } = await supabase
     .from("categories").select("id,code")
     .eq("workspace_id", workspaceId)
-    .in("code", ["00001", "00011", "00014"]);
+    .in("code", ["00001", "00011", "00012", "00013", "00014"]);
   const catBy = new Map<string, string>((cats ?? []).map((c: any) => [c.code, c.id]));
   const catVentas = catBy.get("00001") ?? null;
   const catTransfer = catBy.get("00011") ?? null;
   const catFees = catBy.get("00014") ?? null;
+  const catLoanIn = catBy.get("00012") ?? null;
+  const catLoanOut = catBy.get("00013") ?? null;
 
   // TRM
   const { data: ws } = await supabase
@@ -55,6 +58,7 @@ async function processStripeSince(
     gross: 0, fee: 0, refund: 0, adjustment: 0, payouts: 0,
     scanned: 0, skipped: 0, inserted: 0,
     grossUsd: 0, feeUsd: 0, payoutUsd: 0,
+    loanPayout: 0, loanPaydown: 0,
   };
 
   async function insertIfNew(kind: string, externalId: string, row: any) {
@@ -132,6 +136,42 @@ async function processStripeSince(
           });
           if (id) c.refund++;
         }
+        continue;
+      }
+
+      // Préstamo Stripe Capital (flex loan) — antes de stripe_fee/adjustment
+      const reporting = String(bt.reporting_category ?? "");
+      const desc = String(bt.description ?? "");
+      if (
+        reporting.startsWith("financing") ||
+        ["advance", "advance_funding", "anticipation_repayment"].includes(type) ||
+        /loan/i.test(desc)
+      ) {
+        const raw = Number(bt.amount ?? 0) / 100;
+        const amt = Math.abs(raw);
+        if (amt <= 0) { c.skipped++; continue; }
+        const loanId = desc.match(/flxln_[A-Za-z0-9]+/)?.[0];
+        const chId = desc.match(/\b(?:ch|py)_[A-Za-z0-9]+/)?.[0];
+        const isPayout = raw > 0;
+        const marker = `${bt.id}:${isPayout ? "financing_payout" : "financing_paydown"}`;
+        // Anti-duplicado SIN filtrar por source (hay registros manuales ai_chat)
+        const { data: dupRows } = await supabase
+          .from("transactions").select("id")
+          .eq("workspace_id", workspaceId)
+          .ilike("notes", `%${marker}%`).limit(1);
+        if (dupRows && dupRows.length) { c.skipped++; continue; }
+        const concept = isPayout
+          ? "Desembolso préstamo Stripe Capital"
+          : chId ? `Abono préstamo Stripe Capital · retenido de ${chId}` : "Abono préstamo Stripe Capital";
+        const { error } = await supabase.from("transactions").insert({
+          workspace_id: workspaceId, source: "stripe", account: "stripe",
+          date, concept, type: isPayout ? "ingreso" : "egreso", amount: amt, currency: "USD",
+          category_id: isPayout ? catLoanIn : catLoanOut,
+          notes: `Stripe ${marker}${loanId ? ` · préstamo ${loanId}` : ""}`,
+        });
+        if (error) { c.skipped++; continue; }
+        c.inserted++;
+        if (isPayout) c.loanPayout++; else c.loanPaydown++;
         continue;
       }
 
